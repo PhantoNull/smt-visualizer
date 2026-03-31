@@ -52,6 +52,11 @@
     const kernelWindow = document.getElementById('kernelWindow');
     const brokerEditor = document.getElementById('brokerEditor');
     const kernelEditor = document.getElementById('kernelEditor');
+    const brokerGutter = document.getElementById('brokerGutter');
+    const kernelGutter = document.getElementById('kernelGutter');
+    const brokerXmlStatus = document.getElementById('brokerXmlStatus');
+    const kernelXmlStatus = document.getElementById('kernelXmlStatus');
+    const xmlToast = document.getElementById('xmlToast');
     const brokerWindowClose = document.getElementById('brokerWindowClose');
     const kernelWindowClose = document.getElementById('kernelWindowClose');
 
@@ -95,14 +100,18 @@
     let editDialogOffset = { x: 0, y: 0 };
     let editDialogDrag = null;
     const xmlWindowState = {
-      broker: { element: null, editor: null, offset: { x: 0, y: 0 }, drag: null },
-      kernel: { element: null, editor: null, offset: { x: 0, y: 0 }, drag: null }
+      broker: { element: null, editor: null, gutter: null, status: null, offset: { x: 0, y: 0 }, drag: null, diagnostic: null, validateTimer: null },
+      kernel: { element: null, editor: null, gutter: null, status: null, offset: { x: 0, y: 0 }, drag: null, diagnostic: null, validateTimer: null }
     };
 
     xmlWindowState.broker.element = brokerWindow;
     xmlWindowState.broker.editor = brokerEditor;
+    xmlWindowState.broker.gutter = brokerGutter;
+    xmlWindowState.broker.status = brokerXmlStatus;
     xmlWindowState.kernel.element = kernelWindow;
     xmlWindowState.kernel.editor = kernelEditor;
+    xmlWindowState.kernel.gutter = kernelGutter;
+    xmlWindowState.kernel.status = kernelXmlStatus;
 
     function escapeHtml(str='') {
       return str
@@ -174,10 +183,7 @@
         : { source: kernelInput, editor: kernelEditor, window: kernelWindow };
     }
 
-    function setXmlText(kind, value, from = 'both') {
-      const pair = getXmlPair(kind);
-      if (from === 'both' || from === 'source') pair.source.value = value;
-      if (from === 'both' || from === 'editor') pair.editor.value = value;
+    function updateXmlSourceStatus(kind, value) {
       const compact = String(value || '').trim();
       const lines = compact ? compact.split(/\r?\n/).length : 0;
       const chars = compact.length;
@@ -189,6 +195,14 @@
       }
     }
 
+    function setXmlText(kind, value, from = 'both') {
+      const pair = getXmlPair(kind);
+      if (from === 'both' || from === 'source') pair.source.value = value;
+      if (from === 'both' || from === 'editor') pair.editor.value = value;
+      updateXmlSourceStatus(kind, value);
+      renderXmlEditor(kind);
+    }
+
     function openXmlWindow(kind) {
       const pair = getXmlPair(kind);
       const sourceValue = pair.source.value;
@@ -196,6 +210,7 @@
       const nextValue = sourceValue || editorValue || '';
       pair.source.value = nextValue;
       pair.editor.value = nextValue;
+      normalizeXmlEditor(kind);
       pair.window.classList.add('open');
       pair.window.style.transform = `translate(${xmlWindowState[kind].offset.x}px, ${xmlWindowState[kind].offset.y}px)`;
       pair.editor.focus();
@@ -215,6 +230,198 @@
         x: Math.max(-win.offsetLeft + 12, Math.min(maxX - win.offsetLeft, nextX)),
         y: Math.max(-win.offsetTop + 12, Math.min(maxY - win.offsetTop, nextY))
       };
+    }
+
+    function getXmlEditorState(kind) {
+      return xmlWindowState[kind];
+    }
+
+    function getXmlLineStartIndex(text, targetLine) {
+      if (targetLine <= 1) return 0;
+      let line = 1;
+      for (let i = 0; i < text.length; i++) {
+        if (text[i] === '\n') {
+          line += 1;
+          if (line === targetLine) return i + 1;
+        }
+      }
+      return text.length;
+    }
+
+    function jumpToXmlLine(kind, line) {
+      const state = getXmlEditorState(kind);
+      const editor = state.editor;
+      const text = editor.value || '';
+      const start = getXmlLineStartIndex(text, line);
+      const end = text.indexOf('\n', start);
+      editor.focus();
+      editor.setSelectionRange(start, end === -1 ? text.length : end);
+      const lineHeight = 20;
+      editor.scrollTop = Math.max(0, (line - 2) * lineHeight);
+      syncXmlGutterScroll(kind);
+    }
+
+    function extractXmlDiagnostic(text) {
+      const trimmed = String(text || '').trim();
+      if (!trimmed) {
+        return { valid: false, message: 'XML vuoto', line: 1, column: 1 };
+      }
+
+      const doc = new DOMParser().parseFromString(trimmed, 'application/xml');
+      const err = doc.querySelector('parsererror');
+      if (!err) {
+        return { valid: true, message: 'XML valido', line: null, column: null };
+      }
+
+      const raw = err.textContent.trim().replace(/\s+/g, ' ');
+      const lineMatch = raw.match(/line(?:a)?\s+(\d+)/i) || raw.match(/at line\s+(\d+)/i);
+      const colMatch = raw.match(/column\s+(\d+)/i) || raw.match(/col(?:onna)?\s+(\d+)/i);
+      return {
+        valid: false,
+        message: raw.slice(0, 240),
+        line: lineMatch ? Number(lineMatch[1]) : null,
+        column: colMatch ? Number(colMatch[1]) : null
+      };
+    }
+
+    function compactKernelTransactions(text) {
+      return String(text || '').replace(
+        /(^\s*<Transaction\b[^>]*>\n)((?:\s*<(?:CurrentState|InputEvent|NextState|OutputFunction)>.*?<\/(?:CurrentState|InputEvent|NextState|OutputFunction)>\n)+)(\s*<\/Transaction>)/gm,
+        (_, open, body, close) => {
+          const compactBody = body
+            .trim()
+            .split('\n')
+            .map(line => line.trim())
+            .join('');
+          const indent = open.match(/^(\s*)/)?.[1] || '';
+          return `${open}${indent}  ${compactBody}\n${close}`;
+        }
+      );
+    }
+
+    function formatXmlText(text, kind = '') {
+      const trimmed = String(text || '').trim();
+      if (!trimmed) return '';
+
+      const doc = new DOMParser().parseFromString(trimmed, 'application/xml');
+      if (doc.querySelector('parsererror')) return text;
+
+      const serializer = new XMLSerializer();
+      const serialized = serializer.serializeToString(doc);
+      const tokens = serialized
+        .replace(/>\s*</g, '><')
+        .replace(/(>)(<)(\/*)/g, '$1\n$2$3')
+        .split('\n');
+
+      let indent = 0;
+      const formatted = tokens.map(token => {
+        const line = token.trim();
+        if (!line) return '';
+
+        if (/^<\//.test(line)) indent = Math.max(0, indent - 1);
+        const output = `${'  '.repeat(indent)}${line}`;
+        if (/^<[^!?/][^>]*[^/]>\s*$/.test(line) && !/<\/[^>]+>$/.test(line)) indent += 1;
+        return output;
+      }).filter(Boolean).join('\n');
+
+      return kind === 'kernel' ? compactKernelTransactions(formatted) : formatted;
+    }
+
+    function autoSizeXmlWindow(kind) {
+      const state = getXmlEditorState(kind);
+      const lines = ((getXmlPair(kind).source.value || state.editor.value) || '').split(/\r?\n/);
+      const longest = lines.reduce((max, line) => Math.max(max, line.length), 0);
+      const minWidth = 560;
+      const maxWidth = Math.max(minWidth, window.innerWidth - 48);
+      const targetWidth = Math.min(maxWidth, Math.max(minWidth, 120 + (longest * 8.2)));
+      state.element.style.width = `${targetWidth}px`;
+    }
+
+    function normalizeXmlEditor(kind) {
+      const state = getXmlEditorState(kind);
+      const sourceText = getXmlPair(kind).source.value || state.editor.value || '';
+      const formatted = formatXmlText(sourceText, kind);
+      if (formatted && formatted !== sourceText) {
+        state.editor.value = formatted;
+        setXmlText(kind, formatted, 'source');
+      }
+      autoSizeXmlWindow(kind);
+      renderXmlEditor(kind);
+    }
+
+    function scheduleXmlValidation(kind) {
+      const state = getXmlEditorState(kind);
+      if (state.validateTimer) {
+        clearTimeout(state.validateTimer);
+        state.validateTimer = null;
+      }
+      state.validateTimer = setTimeout(() => {
+        state.validateTimer = null;
+        renderXmlEditor(kind, { forceValidate: true });
+        showXmlToast(state.diagnostic);
+      }, 1000);
+    }
+
+    function syncXmlGutterScroll(kind) {
+      const state = getXmlEditorState(kind);
+      const track = state.gutter.querySelector('.xml-gutter-track');
+      if (track) track.style.transform = `translateY(-${state.editor.scrollTop}px)`;
+    }
+
+    function renderXmlGutter(kind, text, diagnostic) {
+      const state = getXmlEditorState(kind);
+      const totalLines = Math.max(1, String(text || '').split(/\r?\n/).length);
+      const rows = [];
+      for (let line = 1; line <= totalLines; line++) {
+        rows.push(`
+          <div class="xml-gutter-line ${diagnostic?.line === line ? 'error' : ''}">
+            <span class="xml-gutter-fold placeholder"></span>
+            <span>${line}</span>
+          </div>
+        `);
+      }
+
+      state.gutter.innerHTML = `<div class="xml-gutter-track">${rows.join('')}</div>`;
+      syncXmlGutterScroll(kind);
+    }
+
+    function renderXmlEditor(kind, options = {}) {
+      const state = getXmlEditorState(kind);
+      const text = getXmlPair(kind).source.value || state.editor.value || '';
+      const diagnostic = options.forceValidate || state.diagnostic
+        ? extractXmlDiagnostic(text)
+        : extractXmlDiagnostic(text);
+      state.diagnostic = diagnostic;
+      renderXmlGutter(kind, text, diagnostic);
+      state.editor.readOnly = false;
+
+      state.status.textContent = diagnostic.valid
+        ? `XML valido - ${Math.max(1, text.split(/\r?\n/).length)} righe`
+        : `XML non valido${diagnostic.line ? ` - linea ${diagnostic.line}` : ''}${diagnostic.column ? `, colonna ${diagnostic.column}` : ''}: ${diagnostic.message}`;
+      state.status.classList.toggle('valid', diagnostic.valid);
+      state.status.classList.toggle('invalid', !diagnostic.valid);
+      state.editor.classList.toggle('error', !diagnostic.valid);
+    }
+
+    let xmlToastTimer = null;
+
+    function showXmlToast(diagnostic) {
+      if (!xmlToast) return;
+      if (xmlToastTimer) {
+        clearTimeout(xmlToastTimer);
+        xmlToastTimer = null;
+      }
+      const valid = !!diagnostic?.valid;
+      xmlToast.className = `xml-toast open ${valid ? 'valid' : 'invalid'}`;
+      xmlToast.innerHTML = `
+        <span class="xml-toast-badge">${valid ? 'V' : 'X'}</span>
+        <span>${valid ? 'XML Valido' : 'XML Non valido'}</span>
+      `;
+      xmlToastTimer = setTimeout(() => {
+        xmlToast.className = 'xml-toast';
+        xmlToast.innerHTML = '';
+        xmlToastTimer = null;
+      }, 3000);
     }
 
     function clearLayoutCache(cacheKey) {
@@ -399,6 +606,22 @@
       let next = ids.length ? Math.max(...ids) + 1 : 0;
       let candidate = `T${next}`;
       const used = new Set(kernel.transitions.map(transition => transition.id));
+      while (used.has(candidate)) {
+        next += 1;
+        candidate = `T${next}`;
+      }
+      return candidate;
+    }
+
+    function getNextDraftTransitionId(kernel, draftRows = []) {
+      const ids = [...(kernel.transitions || []), ...draftRows]
+        .map(transition => transition.id)
+        .filter(id => /^T\d+$/i.test(id))
+        .map(id => Number(id.slice(1)))
+        .filter(Number.isFinite);
+      let next = ids.length ? Math.max(...ids) + 1 : 0;
+      let candidate = `T${next}`;
+      const used = new Set([...(kernel.transitions || []).map(transition => transition.id), ...draftRows.map(row => row.id)]);
       while (used.has(candidate)) {
         next += 1;
         candidate = `T${next}`;
@@ -1726,6 +1949,7 @@
 
     function closeEditPanel() {
       editPanel.classList.remove('open');
+      editDialog.classList.remove('transition-editor-dialog');
       editTitle.textContent = 'Modalita modifica';
       editSub.textContent = '';
       editBody.innerHTML = '';
@@ -1750,10 +1974,11 @@
       });
     }
 
-    function openEditPanel(title, subtitle, html) {
+    function openEditPanel(title, subtitle, html, options = {}) {
       editTitle.textContent = title;
       editSub.textContent = subtitle || '';
       editBody.innerHTML = html;
+      editDialog.classList.toggle('transition-editor-dialog', options.variant === 'transition-editor');
       editDialog.style.transform = `translate(${editDialogOffset.x}px, ${editDialogOffset.y}px)`;
       editPanel.classList.add('open');
     }
@@ -1773,6 +1998,10 @@
       const transitionId = values.id || '';
       const from = values.from || '';
       const to = values.to || '';
+      const fromState = findStateDefinition(from);
+      const toState = findStateDefinition(to);
+      const fromDisplay = from ? `${from}${fromState?.name ? ` (${fromState.name})` : ''}` : '';
+      const toDisplay = to ? `${to}${toState?.name ? ` (${toState.name})` : ''}` : '';
       const eventId = values.eventId || '';
       const eventName = values.eventName || '';
       const outputId = values.outputId || '';
@@ -1791,13 +2020,13 @@
             <div class="edit-field">
               <label for="${prefix}From">Stato sorgente</label>
               ${lockNodes
-                ? `<input id="${prefix}From" name="${prefix}From" value="${escapeHtml(from)}" readonly />`
+                ? `<input id="${prefix}From" name="${prefix}From" value="${escapeHtml(fromDisplay)}" readonly data-fixed-value="${escapeHtml(from)}" />`
                 : `<select id="${prefix}From" name="${prefix}From">${stateOptions.replace(`value="${escapeHtml(from)}"`, `value="${escapeHtml(from)}" selected`)}</select>`}
             </div>
             <div class="edit-field">
               <label for="${prefix}To">Stato destinazione</label>
               ${lockNodes
-                ? `<input id="${prefix}To" name="${prefix}To" value="${escapeHtml(to)}" readonly />`
+                ? `<input id="${prefix}To" name="${prefix}To" value="${escapeHtml(toDisplay)}" readonly data-fixed-value="${escapeHtml(to)}" />`
                 : `<select id="${prefix}To" name="${prefix}To">${stateOptions.replace(`value="${escapeHtml(to)}"`, `value="${escapeHtml(to)}" selected`)}</select>`}
             </div>
           </div>
@@ -2065,105 +2294,173 @@
       return (lastParsedKernel?.transitions || []).filter(transition => transition.from === edge.from && transition.to === edge.to);
     }
 
+    function formatTransitionListLabel(row, index) {
+      const eventName = row.eventName && row.eventName !== row.eventId ? ` (${row.eventName})` : '';
+      const eventLabel = `${row.eventId || 'Evento n/d'}${eventName}`;
+      const outputLabel = row.outputId || 'Output n/d';
+      return {
+        title: row.id || `#${index + 1}`,
+        meta: `${eventLabel} · ${outputLabel}`
+      };
+    }
+
+    function readTransitionRow(container, prefix) {
+      const read = suffix => {
+        const field = container.querySelector(`[name="${prefix}${suffix}"]`);
+        if (!field) return '';
+        return String(field.getAttribute('data-fixed-value') || field.value || '').trim();
+      };
+      const eventSelectValue = read('EventId');
+      const outputSelectValue = read('OutputId');
+      return {
+        id: read('Id'),
+        from: read('From'),
+        to: read('To'),
+        eventId: eventSelectValue === '__new__' ? read('EventIdCustom') : eventSelectValue,
+        eventName: read('EventName'),
+        outputId: outputSelectValue === '__new__' ? read('OutputIdCustom') : outputSelectValue,
+        outputName: read('OutputName')
+      };
+    }
+
     function openTransitionEditor(edge = null, options = {}) {
       const presetFrom = options.from || edge?.from || '';
       const presetTo = options.to || edge?.to || '';
-      const lockNodes = Boolean(options.lockNodes);
+      const lockNodes = Boolean(options.lockNodes || edge);
       const stateOptions = stateOptionsMarkup();
       const eventOptions = eventOptionsMarkup();
       const outputOptions = outputOptionsMarkup();
-      const transitions = edge
-        ? groupedTransitionsForEdge(edge).map(transition => ({
+      const existingGroupTransitions = edge
+        ? groupedTransitionsForEdge(edge)
+        : ((presetFrom && presetTo)
+            ? groupedTransitionsForEdge({ from: presetFrom, to: presetTo })
+            : []);
+      const mappedExistingTransitions = existingGroupTransitions.map(transition => ({
             ...transition,
             eventName: (lastParsedBroker?.inputEvents || []).find(item => item.id === transition.eventId)?.name || transition.eventId,
             outputName: (lastParsedBroker?.outputs || []).find(item => item.id === transition.outputId)?.name || transition.outputId
-          }))
-        : [{
-            id: getNextTransitionId(lastParsedKernel || { transitions: [] }),
+          }));
+      const shouldAppendNewDraft = !edge;
+      const transitions = shouldAppendNewDraft
+        ? [...mappedExistingTransitions, {
+            id: getNextDraftTransitionId(lastParsedKernel || { transitions: [] }, mappedExistingTransitions),
             from: presetFrom || graph?.initial?.id || lastParsedKernel?.states?.[0]?.id || '',
             to: presetTo || presetFrom || graph?.initial?.id || lastParsedKernel?.states?.[0]?.id || '',
             eventId: (lastParsedBroker?.inputEvents || [])[0]?.id || '',
             eventName: (lastParsedBroker?.inputEvents || [])[0]?.name || '',
             outputId: (lastParsedBroker?.outputs || [])[0]?.id || '',
             outputName: (lastParsedBroker?.outputs || [])[0]?.name || ''
-          }];
+          }]
+        : mappedExistingTransitions;
 
       openEditPanel(
         edge ? 'Modifica transizioni' : 'Aggiungi transizione',
         edge ? `Connessione ${edge.from} -> ${edge.to}` : (lockNodes ? `Nuova transizione ${presetFrom} -> ${presetTo}` : 'Crea una nuova transizione scegliendo stato, evento e output.'),
         `
-          <div class="edit-list" id="transitionList">
-            ${transitions.map((transition, index) => `
-              <div class="edit-card" data-transition-index="${index}">
-                <div class="edit-card-header">
-                  <h4 class="edit-card-title">Transizione ${escapeHtml(transition.id || `#${index + 1}`)}</h4>
-                  <div class="edit-card-actions">
-                    <button type="button" class="edit-mini-btn danger" data-transition-remove="${index}">Rimuovi</button>
-                  </div>
+          <div class="transition-editor-layout">
+            <div class="transition-editor-nav">
+              <div class="transition-editor-nav-head">
+                <div>
+                  <div class="transition-editor-nav-title">Gruppo transizioni</div>
+                  <div class="transition-editor-nav-sub" id="transitionCount"></div>
                 </div>
-                ${transitionEditorFields(`tr${index}`, transition, stateOptions, eventOptions, outputOptions, lockNodes)}
+                <button type="button" class="edit-mini-btn" id="transitionAddRowBtn">Aggiungi</button>
               </div>
-            `).join('')}
+              <div class="transition-editor-list" id="transitionList"></div>
+            </div>
+            <div class="transition-editor-detail" id="transitionDetail"></div>
           </div>
           <div class="edit-actions">
-            <button type="button" class="secondary" id="transitionAddRowBtn">Aggiungi riga</button>
             <button type="button" class="secondary" id="transitionCancelBtn">Annulla</button>
             <button type="button" id="transitionSaveBtn">${edge ? 'Salva gruppo' : 'Crea transizione'}</button>
           </div>
-        `
+        `,
+        { variant: 'transition-editor' }
       );
 
       const list = document.getElementById('transitionList');
-      const renderRows = rows => {
-        list.innerHTML = rows.length ? rows.map((transition, index) => `
-          <div class="edit-card" data-transition-index="${index}">
-            <div class="edit-card-header">
-              <h4 class="edit-card-title">Transizione ${escapeHtml(transition.id || `#${index + 1}`)}</h4>
-              <div class="edit-card-actions">
-                <button type="button" class="edit-mini-btn danger" data-transition-remove="${index}">Rimuovi</button>
-              </div>
-            </div>
-            ${transitionEditorFields(`tr${index}`, transition, stateOptions, eventOptions, outputOptions, lockNodes)}
-          </div>
-        `).join('') : '<div class="edit-empty">Nessuna transizione nel gruppo.</div>';
-
-        list.querySelectorAll('[data-transition-remove]').forEach(button => {
-          button.addEventListener('click', () => {
-            const currentRows = syncRowsFromDom();
-            rows.splice(0, rows.length, ...currentRows);
-            rows.splice(Number(button.getAttribute('data-transition-remove')), 1);
-            renderRows(rows);
-          });
-        });
-        bindTransitionRowBehavior(list);
-      };
+      const detail = document.getElementById('transitionDetail');
+      const count = document.getElementById('transitionCount');
 
       const rows = transitions.map(transition => ({ ...transition }));
-      const syncRowsFromDom = () => {
-        const cards = [...list.querySelectorAll('.edit-card')];
-        return cards.map((card, index) => {
-          const prefix = `tr${index}`;
-          const read = suffix => String(card.querySelector(`[name="${prefix}${suffix}"]`)?.value || '').trim();
-          const eventSelectValue = read('EventId');
-          const outputSelectValue = read('OutputId');
-          return {
-            id: read('Id'),
-            from: read('From'),
-            to: read('To'),
-            eventId: eventSelectValue === '__new__' ? read('EventIdCustom') : eventSelectValue,
-            eventName: read('EventName'),
-            outputId: outputSelectValue === '__new__' ? read('OutputIdCustom') : outputSelectValue,
-            outputName: read('OutputName')
-          };
+      let selectedIndex = rows.length ? (shouldAppendNewDraft ? rows.length - 1 : 0) : -1;
+
+      const syncActiveRowFromDom = () => {
+        if (selectedIndex < 0 || !rows[selectedIndex] || !detail.querySelector('.edit-card')) return;
+        rows[selectedIndex] = readTransitionRow(detail, 'active');
+      };
+
+      const renderDetail = () => {
+        if (selectedIndex < 0 || !rows[selectedIndex]) {
+          detail.innerHTML = '<div class="edit-empty">Nessuna transizione nel gruppo.</div>';
+          return;
+        }
+        const row = rows[selectedIndex];
+        detail.innerHTML = `
+          <div class="edit-card transition-detail-card">
+            <div class="edit-card-header">
+              <h4 class="edit-card-title">Transizione ${escapeHtml(row.id || `#${selectedIndex + 1}`)}</h4>
+              <div class="edit-card-actions">
+                <button type="button" class="edit-mini-btn danger" id="transitionRemoveActiveBtn">Rimuovi</button>
+              </div>
+            </div>
+            ${transitionEditorFields('active', row, stateOptions, eventOptions, outputOptions, lockNodes)}
+          </div>
+        `;
+        bindTransitionRowBehavior(detail);
+        document.getElementById('transitionRemoveActiveBtn')?.addEventListener('click', () => {
+          if (selectedIndex < 0) return;
+          rows.splice(selectedIndex, 1);
+          selectedIndex = rows.length ? Math.min(selectedIndex, rows.length - 1) : -1;
+          renderRows();
         });
       };
-      renderRows(rows);
+
+      const renderRows = () => {
+        count.textContent = rows.length === 1 ? '1 transizione nel gruppo' : `${rows.length} transizioni nel gruppo`;
+        list.innerHTML = rows.length ? rows.map((transition, index) => {
+          const summary = formatTransitionListLabel(transition, index);
+          return `
+            <button type="button" class="transition-list-item ${index === selectedIndex ? 'active' : ''}" data-transition-select="${index}">
+              <span class="transition-list-item-copy">
+                <span class="transition-list-item-title">${escapeHtml(summary.title)}</span>
+                <span class="transition-list-item-meta">${escapeHtml(summary.meta)}</span>
+              </span>
+              <span class="transition-list-item-delete" data-transition-remove="${index}" title="Rimuovi transizione" aria-label="Rimuovi transizione">X</span>
+            </button>
+          `;
+        }).join('') : '<div class="edit-empty">Nessuna transizione nel gruppo.</div>';
+
+        list.querySelectorAll('[data-transition-select]').forEach(button => {
+          button.addEventListener('click', event => {
+            if (event.target?.closest?.('[data-transition-remove]')) return;
+            syncActiveRowFromDom();
+            selectedIndex = Number(button.getAttribute('data-transition-select'));
+            renderRows();
+          });
+        });
+
+        list.querySelectorAll('[data-transition-remove]').forEach(button => {
+          button.addEventListener('click', event => {
+            event.stopPropagation();
+            syncActiveRowFromDom();
+            rows.splice(Number(button.getAttribute('data-transition-remove')), 1);
+            selectedIndex = rows.length ? Math.min(selectedIndex, rows.length - 1) : -1;
+            renderRows();
+          });
+        });
+
+        const activeItem = selectedIndex >= 0 ? list.querySelector(`[data-transition-select="${selectedIndex}"]`) : null;
+        activeItem?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+        renderDetail();
+      };
+
+      renderRows();
 
       document.getElementById('transitionAddRowBtn')?.addEventListener('click', () => {
-        const currentRows = syncRowsFromDom();
-        rows.splice(0, rows.length, ...currentRows);
+        syncActiveRowFromDom();
         rows.push({
-          id: getNextTransitionId(lastParsedKernel || { transitions: [] }),
+          id: getNextDraftTransitionId(lastParsedKernel || { transitions: [] }, rows),
           from: presetFrom || edge?.from || graph?.initial?.id || '',
           to: presetTo || edge?.to || graph?.initial?.id || '',
           eventId: (lastParsedBroker?.inputEvents || [])[0]?.id || '',
@@ -2171,13 +2468,15 @@
           outputId: (lastParsedBroker?.outputs || [])[0]?.id || '',
           outputName: (lastParsedBroker?.outputs || [])[0]?.name || ''
         });
-        renderRows(rows);
+        selectedIndex = rows.length - 1;
+        renderRows();
       });
 
       document.getElementById('transitionCancelBtn')?.addEventListener('click', closeEditPanel);
       document.getElementById('transitionSaveBtn')?.addEventListener('click', async () => {
         try {
-          const nextRows = syncRowsFromDom().filter(item => item.id || item.from || item.to || item.eventId || item.outputId);
+          syncActiveRowFromDom();
+          const nextRows = rows.filter(item => item.id || item.from || item.to || item.eventId || item.outputId);
 
           if (!nextRows.length) {
             if (!edge) throw new Error('Inserisci almeno una transizione');
@@ -2645,13 +2944,23 @@
       scheduleAutoRender(false);
     });
     brokerEditor.addEventListener('input', () => {
-      setXmlText('broker', brokerEditor.value);
+      const value = brokerEditor.value;
+      brokerInput.value = value;
+      updateXmlSourceStatus('broker', value);
+      autoSizeXmlWindow('broker');
+      scheduleXmlValidation('broker');
       scheduleAutoRender(false);
     });
     kernelEditor.addEventListener('input', () => {
-      setXmlText('kernel', kernelEditor.value);
+      const value = kernelEditor.value;
+      kernelInput.value = value;
+      updateXmlSourceStatus('kernel', value);
+      autoSizeXmlWindow('kernel');
+      scheduleXmlValidation('kernel');
       scheduleAutoRender(false);
     });
+    brokerEditor.addEventListener('scroll', () => syncXmlGutterScroll('broker'));
+    kernelEditor.addEventListener('scroll', () => syncXmlGutterScroll('kernel'));
     summaryClose.addEventListener('click', closeNodeSummary);
     editClose.addEventListener('click', closeEditPanel);
     editHead.addEventListener('pointerdown', e => {

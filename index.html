@@ -178,7 +178,15 @@
       <button type="button" class="edit-close" id="brokerWindowClose" aria-label="Chiudi editor Broker XML">X</button>
     </div>
     <div class="xml-window-body">
-      <textarea id="brokerEditor" spellcheck="false"></textarea>
+      <div class="xml-toolbar">
+        <div class="xml-toolbar-status" id="brokerXmlStatus">Editor XML pronto.</div>
+      </div>
+      <div class="xml-editor-layout">
+        <div class="xml-code-shell">
+          <div class="xml-gutter" id="brokerGutter" aria-hidden="true"></div>
+          <textarea id="brokerEditor" spellcheck="false" wrap="off"></textarea>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -191,9 +199,19 @@
       <button type="button" class="edit-close" id="kernelWindowClose" aria-label="Chiudi editor Kernel XML">X</button>
     </div>
     <div class="xml-window-body">
-      <textarea id="kernelEditor" spellcheck="false"></textarea>
+      <div class="xml-toolbar">
+        <div class="xml-toolbar-status" id="kernelXmlStatus">Editor XML pronto.</div>
+      </div>
+      <div class="xml-editor-layout">
+        <div class="xml-code-shell">
+          <div class="xml-gutter" id="kernelGutter" aria-hidden="true"></div>
+          <textarea id="kernelEditor" spellcheck="false" wrap="off"></textarea>
+        </div>
+      </div>
     </div>
   </div>
+
+  <div class="xml-toast" id="xmlToast" aria-live="polite"></div>
 
   <div class="confirm-panel" id="confirmPanel">
     <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
