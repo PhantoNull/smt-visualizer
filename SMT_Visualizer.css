@@ -420,6 +420,17 @@
       line-height: 1.45;
     }
 
+    .footer-link {
+      color: #1d4ed8;
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    .footer-link:hover,
+    .footer-link:focus-visible {
+      text-decoration: underline;
+    }
+
     .range-control {
       padding: 12px 14px;
       border: 1px solid var(--line);
@@ -749,6 +760,10 @@
       cursor: default;
     }
 
+    .edit-dialog.transition-editor-dialog {
+      width: min(1120px, calc(100vw - 56px));
+    }
+
     .edit-head {
       display: flex;
       align-items: flex-start;
@@ -868,6 +883,131 @@
       gap: 10px;
     }
 
+    .transition-editor-layout {
+      display: grid;
+      grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+      gap: 14px;
+      min-height: 460px;
+      height: min(68vh, 720px);
+      max-height: min(68vh, 720px);
+      align-items: stretch;
+    }
+
+    .transition-editor-nav,
+    .transition-editor-detail {
+      min-height: 0;
+    }
+
+    .transition-editor-nav {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      height: 100%;
+      padding: 14px;
+      border: 1px solid #dfe6f2;
+      border-radius: 16px;
+      background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+      overflow: hidden;
+    }
+
+    .transition-editor-nav-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .transition-editor-nav-title {
+      font-size: 13px;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .transition-editor-nav-sub {
+      margin-top: 4px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .transition-editor-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-height: 0;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .transition-list-item {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 11px 12px;
+      border: 1px solid #d7dfec;
+      border-radius: 14px;
+      background: #ffffff;
+      color: #10203c;
+      text-align: left;
+    }
+
+    .transition-list-item.active {
+      border-color: #93c5fd;
+      background: #eef4ff;
+      box-shadow: inset 0 0 0 1px rgba(47, 111, 218, 0.14);
+    }
+
+    .transition-list-item-copy {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .transition-list-item-title {
+      font-size: 13px;
+      font-weight: 800;
+      color: #0f172a;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .transition-list-item-meta {
+      font-size: 12px;
+      color: #64748b;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .transition-list-item-delete {
+      flex: 0 0 auto;
+      width: 24px;
+      height: 24px;
+      display: inline-grid;
+      place-items: center;
+      border: 1px solid #f2c0bb;
+      border-radius: 8px;
+      background: #fff1f0;
+      color: #b42318;
+      font-size: 11px;
+      font-weight: 800;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .transition-editor-detail {
+      min-width: 0;
+      min-height: 0;
+      overflow: auto;
+    }
+
+    .transition-detail-card {
+      min-height: 100%;
+    }
+
     .edit-card {
       border: 1px solid #dfe6f2;
       border-radius: 14px;
@@ -928,6 +1068,23 @@
       font-size: 12px;
       text-align: center;
       background: #fbfcff;
+    }
+
+    @media (max-width: 920px) {
+      .edit-dialog.transition-editor-dialog {
+        width: min(760px, calc(100vw - 32px));
+      }
+
+      .transition-editor-layout {
+        grid-template-columns: 1fr;
+        min-height: 0;
+        height: auto;
+        max-height: none;
+      }
+
+      .transition-editor-list {
+        max-height: 220px;
+      }
     }
 
     .edit-inline-warning {
