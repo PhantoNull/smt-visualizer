@@ -97,11 +97,54 @@
       margin-bottom: 6px;
     }
 
+    .xml-launcher {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #fafcff;
+    }
+
+    .xml-launcher-copy {
+      min-width: 0;
+    }
+
+    .xml-launcher-title {
+      margin: 0;
+      font-size: 13px;
+      font-weight: 800;
+      color: #10203c;
+    }
+
+    .xml-launcher-sub {
+      margin-top: 4px;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    .xml-launcher-status {
+      margin-top: 6px;
+      font-size: 11px;
+      color: #475569;
+      line-height: 1.35;
+    }
+
+    .xml-launcher-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 0 0 auto;
+    }
+
     .input-head label {
       margin-bottom: 0;
     }
 
-    .input-head .file-btn {
+    .file-btn {
       display: inline-grid;
       place-items: center;
       border: 1px solid #d7dfec;
@@ -115,10 +158,15 @@
       flex: 0 0 auto;
     }
 
-    .input-head .file-btn svg {
-      width: 18px;
-      height: 18px;
+    .file-btn svg {
+      width: 13.5px;
+      height: 13.5px;
       flex: 0 0 auto;
+    }
+
+    .file-btn.edit-btn svg {
+      width: 12.75px;
+      height: 12.75px;
     }
 
     .row { display: flex; gap: 10px; flex-wrap: wrap; }
@@ -629,6 +677,70 @@
       gap: 10px;
     }
 
+    .xml-window {
+      position: fixed;
+      top: 120px;
+      left: 120px;
+      width: min(720px, calc(100vw - 48px));
+      height: min(520px, calc(100vh - 96px));
+      min-width: 360px;
+      min-height: 260px;
+      display: none;
+      flex-direction: column;
+      border: 1px solid #d7dfec;
+      border-radius: 18px;
+      background: #fcfdff;
+      box-shadow: 0 20px 60px rgba(15, 23, 42, 0.22);
+      overflow: hidden;
+      resize: both;
+      z-index: 25;
+    }
+
+    .xml-window.open {
+      display: flex;
+    }
+
+    .xml-window[data-kind="kernel"] {
+      top: 156px;
+      left: 180px;
+    }
+
+    .xml-window-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 16px 10px;
+      border-bottom: 1px solid #edf1f7;
+      cursor: move;
+      user-select: none;
+      background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+    }
+
+    .xml-window-title {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .xml-window-sub {
+      margin-top: 4px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .xml-window-body {
+      flex: 1;
+      padding: 12px;
+      min-height: 0;
+    }
+
+    .xml-window textarea {
+      min-height: 100%;
+      height: 100%;
+    }
+
     .edit-dialog {
       width: min(760px, calc(100vw - 56px));
       max-height: min(84vh, 960px);
@@ -891,9 +1003,18 @@
 
       <div class="error" id="errorBox"></div>
 
-      <div>
-        <div class="input-head">
-          <label for="brokerInput">Broker XML</label>
+      <div class="xml-launcher">
+        <div class="xml-launcher-copy">
+          <div class="xml-launcher-title">Broker XML</div>
+          <div class="xml-launcher-sub">Apri il file o modifica il contenuto in una finestra dedicata.</div>
+          <div class="xml-launcher-status" id="brokerStatus">Nessun contenuto caricato.</div>
+        </div>
+        <div class="xml-launcher-actions">
+          <button type="button" class="file-btn edit-btn" id="brokerEditBtn" title="Modifica Broker XML" aria-label="Modifica Broker XML">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 16.5V20h3.5L18.2 9.3l-3.5-3.5L4 16.5zm11.7-11.7l1.5-1.5a1.8 1.8 0 012.5 0l1.4 1.4a1.8 1.8 0 010 2.5l-1.5 1.5-3.9-3.9z" fill="currentColor"/>
+            </svg>
+          </button>
           <button type="button" class="file-btn" id="brokerFileBtn" title="Apri file" aria-label="Apri file Broker XML">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M3 7a2 2 0 012-2h4.2l1.7 1.8H19a2 2 0 012 2v1H3V7z" fill="#facc15"/>
@@ -902,12 +1023,21 @@
           </button>
         </div>
         <input type="file" id="brokerFileInput" accept=".xml,.txt" hidden />
-        <textarea id="brokerInput" spellcheck="false"></textarea>
+        <textarea id="brokerInput" spellcheck="false" hidden></textarea>
       </div>
 
-      <div>
-        <div class="input-head">
-          <label for="kernelInput">Kernel XML</label>
+      <div class="xml-launcher">
+        <div class="xml-launcher-copy">
+          <div class="xml-launcher-title">Kernel XML</div>
+          <div class="xml-launcher-sub">Apri il file o modifica il contenuto in una finestra dedicata.</div>
+          <div class="xml-launcher-status" id="kernelStatus">Nessun contenuto caricato.</div>
+        </div>
+        <div class="xml-launcher-actions">
+          <button type="button" class="file-btn edit-btn" id="kernelEditBtn" title="Modifica Kernel XML" aria-label="Modifica Kernel XML">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 16.5V20h3.5L18.2 9.3l-3.5-3.5L4 16.5zm11.7-11.7l1.5-1.5a1.8 1.8 0 012.5 0l1.4 1.4a1.8 1.8 0 010 2.5l-1.5 1.5-3.9-3.9z" fill="currentColor"/>
+            </svg>
+          </button>
           <button type="button" class="file-btn" id="kernelFileBtn" title="Apri file" aria-label="Apri file Kernel XML">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M3 7a2 2 0 012-2h4.2l1.7 1.8H19a2 2 0 012 2v1H3V7z" fill="#facc15"/>
@@ -916,7 +1046,7 @@
           </button>
         </div>
         <input type="file" id="kernelFileInput" accept=".xml,.txt" hidden />
-        <textarea id="kernelInput" spellcheck="false"></textarea>
+        <textarea id="kernelInput" spellcheck="false" hidden></textarea>
       </div>
 
       <div class="row">
@@ -950,7 +1080,7 @@
       </div>
 
       <div class="footer-note">
-        Licenza: <b>Creative Commons BY 4.0</b> by <b>Luca Di Pierro</b>.
+        Licenza: <b>Creative Commons BY 4.0</b> by <b>PhantoNull</b>.
       </div>
 
       <div class="summary-panel" id="summaryPanel">
@@ -1026,6 +1156,32 @@
     </div>
   </div>
 
+  <div class="xml-window" id="brokerWindow" data-kind="broker">
+    <div class="xml-window-head" data-drag-handle="broker">
+      <div>
+        <h3 class="xml-window-title">Broker XML</h3>
+        <div class="xml-window-sub">Finestra trascinabile e ridimensionabile.</div>
+      </div>
+      <button type="button" class="edit-close" id="brokerWindowClose" aria-label="Chiudi editor Broker XML">×</button>
+    </div>
+    <div class="xml-window-body">
+      <textarea id="brokerEditor" spellcheck="false"></textarea>
+    </div>
+  </div>
+
+  <div class="xml-window" id="kernelWindow" data-kind="kernel">
+    <div class="xml-window-head" data-drag-handle="kernel">
+      <div>
+        <h3 class="xml-window-title">Kernel XML</h3>
+        <div class="xml-window-sub">Finestra trascinabile e ridimensionabile.</div>
+      </div>
+      <button type="button" class="edit-close" id="kernelWindowClose" aria-label="Chiudi editor Kernel XML">×</button>
+    </div>
+    <div class="xml-window-body">
+      <textarea id="kernelEditor" spellcheck="false"></textarea>
+    </div>
+  </div>
+
   <div class="confirm-panel" id="confirmPanel">
     <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
       <h3 class="confirm-title" id="confirmTitle">Conferma cancellazione</h3>
@@ -1064,9 +1220,13 @@
     const spacingRange = document.getElementById('spacingRange');
     const spacingValue = document.getElementById('spacingValue');
     const brokerFileBtn = document.getElementById('brokerFileBtn');
+    const brokerEditBtn = document.getElementById('brokerEditBtn');
     const brokerFileInput = document.getElementById('brokerFileInput');
+    const brokerStatus = document.getElementById('brokerStatus');
     const kernelFileBtn = document.getElementById('kernelFileBtn');
+    const kernelEditBtn = document.getElementById('kernelEditBtn');
     const kernelFileInput = document.getElementById('kernelFileInput');
+    const kernelStatus = document.getElementById('kernelStatus');
     const summaryPanel = document.getElementById('summaryPanel');
     const summaryTitle = document.getElementById('summaryTitle');
     const summarySub = document.getElementById('summarySub');
@@ -1084,6 +1244,12 @@
     const confirmText = document.getElementById('confirmText');
     const confirmCancelBtn = document.getElementById('confirmCancelBtn');
     const confirmAcceptBtn = document.getElementById('confirmAcceptBtn');
+    const brokerWindow = document.getElementById('brokerWindow');
+    const kernelWindow = document.getElementById('kernelWindow');
+    const brokerEditor = document.getElementById('brokerEditor');
+    const kernelEditor = document.getElementById('kernelEditor');
+    const brokerWindowClose = document.getElementById('brokerWindowClose');
+    const kernelWindowClose = document.getElementById('kernelWindowClose');
 
     const NS = 'http://www.w3.org/2000/svg';
     const SVG_FONT_STACK = 'Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif';
@@ -1124,6 +1290,15 @@
     let confirmResolver = null;
     let editDialogOffset = { x: 0, y: 0 };
     let editDialogDrag = null;
+    const xmlWindowState = {
+      broker: { element: null, editor: null, offset: { x: 0, y: 0 }, drag: null },
+      kernel: { element: null, editor: null, offset: { x: 0, y: 0 }, drag: null }
+    };
+
+    xmlWindowState.broker.element = brokerWindow;
+    xmlWindowState.broker.editor = brokerEditor;
+    xmlWindowState.kernel.element = kernelWindow;
+    xmlWindowState.kernel.editor = kernelEditor;
 
     function escapeHtml(str='') {
       return str
@@ -1187,6 +1362,55 @@
     function showError(message) {
       errorBox.textContent = message;
       errorBox.style.display = 'block';
+    }
+
+    function getXmlPair(kind) {
+      return kind === 'broker'
+        ? { source: brokerInput, editor: brokerEditor, window: brokerWindow }
+        : { source: kernelInput, editor: kernelEditor, window: kernelWindow };
+    }
+
+    function setXmlText(kind, value, from = 'both') {
+      const pair = getXmlPair(kind);
+      if (from === 'both' || from === 'source') pair.source.value = value;
+      if (from === 'both' || from === 'editor') pair.editor.value = value;
+      const compact = String(value || '').trim();
+      const lines = compact ? compact.split(/\r?\n/).length : 0;
+      const chars = compact.length;
+      const status = kind === 'broker' ? brokerStatus : kernelStatus;
+      if (status) {
+        status.textContent = compact
+          ? `${lines} righe caricate · ${chars.toLocaleString('it-IT')} caratteri`
+          : 'Nessun contenuto caricato.';
+      }
+    }
+
+    function openXmlWindow(kind) {
+      const pair = getXmlPair(kind);
+      const sourceValue = pair.source.value;
+      const editorValue = pair.editor.value;
+      const nextValue = sourceValue || editorValue || '';
+      pair.source.value = nextValue;
+      pair.editor.value = nextValue;
+      pair.window.classList.add('open');
+      pair.window.style.transform = `translate(${xmlWindowState[kind].offset.x}px, ${xmlWindowState[kind].offset.y}px)`;
+      pair.editor.focus();
+    }
+
+    function closeXmlWindow(kind) {
+      getXmlPair(kind).window.classList.remove('open');
+    }
+
+    function clampXmlWindowOffset(kind, nextX, nextY) {
+      const state = xmlWindowState[kind];
+      const win = state.element;
+      const rect = win.getBoundingClientRect();
+      const maxX = Math.max(0, window.innerWidth - rect.width - 24);
+      const maxY = Math.max(0, window.innerHeight - rect.height - 24);
+      return {
+        x: Math.max(-win.offsetLeft + 12, Math.min(maxX - win.offsetLeft, nextX)),
+        y: Math.max(-win.offsetTop + 12, Math.min(maxY - win.offsetTop, nextY))
+      };
     }
 
     function clearLayoutCache(cacheKey) {
@@ -1452,8 +1676,8 @@
       pushEditHistory();
       await mutator(broker, kernel);
 
-      brokerInput.value = serializeBroker(broker);
-      kernelInput.value = serializeKernel(kernel);
+      setXmlText('broker', serializeBroker(broker));
+      setXmlText('kernel', serializeKernel(kernel));
 
       if (!options.skipPersist) await persistXmlToFiles();
       renderAll();
@@ -2644,6 +2868,8 @@
       if (!file || !textarea) return;
       const text = await file.text();
       textarea.value = text;
+      if (textarea === brokerInput) brokerEditor.value = text;
+      if (textarea === kernelInput) kernelEditor.value = text;
     }
 
     async function openXmlWithPicker(kind) {
@@ -2662,10 +2888,10 @@
       const text = await file.text();
       if (kind === 'broker') {
         brokerFileHandle = handle;
-        brokerInput.value = text;
+        setXmlText('broker', text, 'source');
       } else {
         kernelFileHandle = handle;
-        kernelInput.value = text;
+        setXmlText('kernel', text, 'source');
       }
     }
 
@@ -3469,6 +3695,12 @@
       }
     }
 
+    function bootstrapDefaultMachine() {
+      setXmlText('broker', demoBroker);
+      setXmlText('kernel', demoKernel);
+      renderAll();
+    }
+
     [showSelfLoops, showOutputs, showEventNames, showTransactions, showReachableCascade, showUnused].forEach(el => el.addEventListener('change', () => rerenderPreservingPositions()));
     spacingRange.addEventListener('input', () => {
       const previousScale = spacingScale;
@@ -3504,8 +3736,8 @@
       const snapshot = editHistory.pop();
       updateEditModeUI();
       if (!snapshot) return;
-      brokerInput.value = snapshot.brokerText;
-      kernelInput.value = snapshot.kernelText;
+      setXmlText('broker', snapshot.brokerText);
+      setXmlText('kernel', snapshot.kernelText);
       try {
         await persistXmlToFiles();
       } catch (err) {
@@ -3543,6 +3775,10 @@
       }
       kernelFileInput.click();
     });
+    brokerEditBtn.addEventListener('click', () => openXmlWindow('broker'));
+    kernelEditBtn.addEventListener('click', () => openXmlWindow('kernel'));
+    brokerWindowClose.addEventListener('click', () => closeXmlWindow('broker'));
+    kernelWindowClose.addEventListener('click', () => closeXmlWindow('kernel'));
     brokerFileInput.addEventListener('change', async () => {
       const file = brokerFileInput.files?.[0];
       if (!file) return;
@@ -3569,8 +3805,24 @@
         kernelFileInput.value = '';
       }
     });
-    brokerInput.addEventListener('input', () => scheduleAutoRender(false));
-    kernelInput.addEventListener('input', () => scheduleAutoRender(false));
+    brokerInput.addEventListener('input', () => {
+      if (brokerEditor.value !== brokerInput.value) brokerEditor.value = brokerInput.value;
+      setXmlText('broker', brokerInput.value);
+      scheduleAutoRender(false);
+    });
+    kernelInput.addEventListener('input', () => {
+      if (kernelEditor.value !== kernelInput.value) kernelEditor.value = kernelInput.value;
+      setXmlText('kernel', kernelInput.value);
+      scheduleAutoRender(false);
+    });
+    brokerEditor.addEventListener('input', () => {
+      setXmlText('broker', brokerEditor.value);
+      scheduleAutoRender(false);
+    });
+    kernelEditor.addEventListener('input', () => {
+      setXmlText('kernel', kernelEditor.value);
+      scheduleAutoRender(false);
+    });
     summaryClose.addEventListener('click', closeNodeSummary);
     editClose.addEventListener('click', closeEditPanel);
     editHead.addEventListener('pointerdown', e => {
@@ -3601,6 +3853,41 @@
     });
     confirmCancelBtn.addEventListener('click', () => closeConfirmPanel(false));
     confirmAcceptBtn.addEventListener('click', () => closeConfirmPanel(true));
+    document.querySelectorAll('.xml-window-head').forEach(handle => {
+      handle.addEventListener('pointerdown', e => {
+        if (e.target.closest('button, input, select, textarea, label')) return;
+        const kind = handle.getAttribute('data-drag-handle');
+        const state = xmlWindowState[kind];
+        state.drag = {
+          startX: e.clientX,
+          startY: e.clientY,
+          offsetX: state.offset.x,
+          offsetY: state.offset.y
+        };
+        handle.setPointerCapture(e.pointerId);
+        e.preventDefault();
+      });
+      handle.addEventListener('pointermove', e => {
+        const kind = handle.getAttribute('data-drag-handle');
+        const state = xmlWindowState[kind];
+        if (!state.drag) return;
+        const next = clampXmlWindowOffset(
+          kind,
+          state.drag.offsetX + (e.clientX - state.drag.startX),
+          state.drag.offsetY + (e.clientY - state.drag.startY)
+        );
+        state.offset = next;
+        state.element.style.transform = `translate(${next.x}px, ${next.y}px)`;
+      });
+      handle.addEventListener('pointerup', () => {
+        const kind = handle.getAttribute('data-drag-handle');
+        xmlWindowState[kind].drag = null;
+      });
+      handle.addEventListener('pointercancel', () => {
+        const kind = handle.getAttribute('data-drag-handle');
+        xmlWindowState[kind].drag = null;
+      });
+    });
     summaryPanel.addEventListener('click', e => {
       if (e.target === summaryPanel) closeNodeSummary();
     });
@@ -3745,9 +4032,7 @@
   </Transactions>
 </StateMachine>`;
 
-    brokerInput.value = demoBroker;
-    kernelInput.value = demoKernel;
-    renderAll();
+    bootstrapDefaultMachine();
   </script>
 </body>
 </html>
