@@ -641,6 +641,7 @@
       display: flex;
       flex-direction: column;
       gap: 14px;
+      cursor: default;
     }
 
     .edit-head {
@@ -648,6 +649,8 @@
       align-items: flex-start;
       justify-content: space-between;
       gap: 12px;
+      cursor: move;
+      user-select: none;
     }
 
     .edit-title {
@@ -947,7 +950,7 @@
       </div>
 
       <div class="footer-note">
-        Licenza: <b>Creative Commons BY 4.0</b> by <b>PhantoNull</b>.
+        Licenza: <b>Creative Commons BY 4.0</b> by <b>Luca Di Pierro</b>.
       </div>
 
       <div class="summary-panel" id="summaryPanel">
@@ -1074,6 +1077,8 @@
     const editSub = document.getElementById('editSub');
     const editBody = document.getElementById('editBody');
     const editClose = document.getElementById('editClose');
+    const editDialog = document.querySelector('.edit-dialog');
+    const editHead = document.querySelector('.edit-head');
     const confirmPanel = document.getElementById('confirmPanel');
     const confirmTitle = document.getElementById('confirmTitle');
     const confirmText = document.getElementById('confirmText');
@@ -1117,6 +1122,8 @@
     let pendingTransitionStartId = null;
     let pendingTransitionPointer = null;
     let confirmResolver = null;
+    let editDialogOffset = { x: 0, y: 0 };
+    let editDialogDrag = null;
 
     function escapeHtml(str='') {
       return str
@@ -2667,6 +2674,8 @@
       editTitle.textContent = 'Modalita modifica';
       editSub.textContent = '';
       editBody.innerHTML = '';
+      editDialogOffset = { x: 0, y: 0 };
+      editDialog.style.transform = '';
     }
 
     function closeConfirmPanel(result = false) {
@@ -2690,7 +2699,19 @@
       editTitle.textContent = title;
       editSub.textContent = subtitle || '';
       editBody.innerHTML = html;
+      editDialog.style.transform = `translate(${editDialogOffset.x}px, ${editDialogOffset.y}px)`;
       editPanel.classList.add('open');
+    }
+
+    function clampEditDialogOffset(nextX, nextY) {
+      const panelRect = editPanel.getBoundingClientRect();
+      const dialogRect = editDialog.getBoundingClientRect();
+      const maxX = Math.max(0, panelRect.width / 2 - dialogRect.width / 2 - 20);
+      const maxY = Math.max(0, panelRect.height / 2 - dialogRect.height / 2 - 20);
+      return {
+        x: Math.max(-maxX, Math.min(maxX, nextX)),
+        y: Math.max(-maxY, Math.min(maxY, nextY))
+      };
     }
 
     function transitionEditorFields(prefix, values = {}, stateOptions = '', eventOptions = '', outputOptions = '', lockNodes = false) {
@@ -3552,6 +3573,32 @@
     kernelInput.addEventListener('input', () => scheduleAutoRender(false));
     summaryClose.addEventListener('click', closeNodeSummary);
     editClose.addEventListener('click', closeEditPanel);
+    editHead.addEventListener('pointerdown', e => {
+      if (e.target.closest('button, input, select, textarea, label')) return;
+      editDialogDrag = {
+        startX: e.clientX,
+        startY: e.clientY,
+        offsetX: editDialogOffset.x,
+        offsetY: editDialogOffset.y
+      };
+      editHead.setPointerCapture(e.pointerId);
+      e.preventDefault();
+    });
+    editHead.addEventListener('pointermove', e => {
+      if (!editDialogDrag) return;
+      const next = clampEditDialogOffset(
+        editDialogDrag.offsetX + (e.clientX - editDialogDrag.startX),
+        editDialogDrag.offsetY + (e.clientY - editDialogDrag.startY)
+      );
+      editDialogOffset = next;
+      editDialog.style.transform = `translate(${next.x}px, ${next.y}px)`;
+    });
+    editHead.addEventListener('pointerup', () => {
+      editDialogDrag = null;
+    });
+    editHead.addEventListener('pointercancel', () => {
+      editDialogDrag = null;
+    });
     confirmCancelBtn.addEventListener('click', () => closeConfirmPanel(false));
     confirmAcceptBtn.addEventListener('click', () => closeConfirmPanel(true));
     summaryPanel.addEventListener('click', e => {
