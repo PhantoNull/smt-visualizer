@@ -328,7 +328,8 @@
       display: none;
       align-items: center;
       gap: 8px;
-      margin-top: 10px;
+      min-width: 0;
+      flex: 1 1 auto;
     }
 
     .machine-header-edit.active {
@@ -347,12 +348,12 @@
     }
 
     #machineIdInput {
-      width: 150px;
+      width: 180px;
       flex: 0 0 auto;
     }
 
     #machineNameInput {
-      width: min(340px, 100%);
+      width: min(420px, 100%);
       flex: 1 1 auto;
     }
 

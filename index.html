@@ -127,6 +127,10 @@
         <div class="title-wrap">
           <div class="title-row">
             <h2 id="machineTitle">Nessuna macchina caricata</h2>
+            <div class="machine-header-edit" id="machineHeaderEditor">
+              <input type="text" id="machineIdInput" placeholder="ID macchina" />
+              <input type="text" id="machineNameInput" placeholder="Nome macchina" />
+            </div>
             <div class="edit-warning" id="editWarning">
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M12 3l9 16H3L12 3zm0 5.6l-.8 5.9h1.6L12 8.6zm0 8.8a1.1 1.1 0 100-2.2 1.1 1.1 0 000 2.2z" fill="currentColor"/>
@@ -135,10 +139,6 @@
             </div>
           </div>
           <div class="meta" id="machineMeta">Incolla i due XML o apri i file corrispondenti.</div>
-          <div class="machine-header-edit" id="machineHeaderEditor">
-            <input type="text" id="machineIdInput" placeholder="ID macchina" />
-            <input type="text" id="machineNameInput" placeholder="Nome macchina" />
-          </div>
         </div>
         <div class="topbar-actions">
           <button type="button" class="export-btn new-machine-btn" id="newMachineBtn" title="Nuova state machine" aria-label="Nuova state machine">

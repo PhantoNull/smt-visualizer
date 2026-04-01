@@ -493,6 +493,7 @@
         machineTitle.textContent = 'Nessuna macchina caricata';
         machineMeta.textContent = 'Incolla i due XML o apri i file corrispondenti.';
         machineHeaderEditor.classList.remove('active');
+        machineTitle.style.display = '';
         return;
       }
 
@@ -506,28 +507,76 @@
       machineNameInput.value = machineName;
       machineHeaderSyncing = false;
       machineHeaderEditor.classList.toggle('active', editMode);
+      machineTitle.style.display = editMode ? 'none' : '';
     }
 
-    function buildNewStateMachineXml() {
+    function buildNewStateMachineXml(machineId = 'FSM_NEW', machineName = 'New state machine') {
       const broker = {
-        id: 'FSM_NEW',
-        name: 'New state machine',
-        fsmId: 'FSM_NEW',
-        states: [{ id: 'S0', name: 'Initial', initial: true, final: false }],
+        id: machineId,
+        name: machineName,
+        fsmId: machineId,
+        states: [{ id: 'Si', name: 'Stato iniziale', initial: true, final: false }],
         inputEvents: [],
         outputs: []
       };
       const kernel = {
-        id: 'FSM_NEW',
-        name: 'New state machine',
+        id: machineId,
+        name: machineName,
         version: '1.0',
-        states: [{ id: 'S0', name: 'Initial', initial: true, final: false }],
+        states: [{ id: 'Si', name: 'Stato iniziale', initial: true, final: false }],
         transitions: []
       };
       return {
         brokerText: serializeBroker(broker),
         kernelText: serializeKernel(kernel)
       };
+    }
+
+    function openNewMachineDialog() {
+      openEditPanel(
+        'Nuova state machine',
+        'Inserisci ID e nome della nuova macchina. Verranno creati Broker e Kernel con un solo stato iniziale.',
+        `
+          <form id="newMachineForm">
+            <div class="edit-grid">
+              <div class="edit-field">
+                <label for="newMachineIdInput">ID macchina</label>
+                <input id="newMachineIdInput" name="machineId" value="FSM_NEW" />
+              </div>
+              <div class="edit-field">
+                <label for="newMachineNameInput">Nome macchina</label>
+                <input id="newMachineNameInput" name="machineName" value="New state machine" />
+              </div>
+            </div>
+            <div class="edit-actions">
+              <button type="button" class="secondary" id="newMachineCancelBtn">Annulla</button>
+              <button type="submit">Crea macchina</button>
+            </div>
+          </form>
+        `
+      );
+
+      document.getElementById('newMachineCancelBtn')?.addEventListener('click', closeEditPanel);
+      document.getElementById('newMachineForm')?.addEventListener('submit', event => {
+        event.preventDefault();
+        const form = new FormData(event.currentTarget);
+        const nextId = String(form.get('machineId') || '').trim();
+        const nextName = String(form.get('machineName') || '').trim();
+        if (!nextId || !nextName) {
+          showError('ID e nome macchina sono obbligatori');
+          return;
+        }
+
+        const currentCacheKey = graph?.layoutCacheKey || null;
+        if (currentCacheKey) clearLayoutCache(currentCacheKey);
+        const seed = buildNewStateMachineXml(nextId, nextName);
+        brokerFileHandle = null;
+        kernelFileHandle = null;
+        setXmlText('broker', seed.brokerText);
+        setXmlText('kernel', seed.kernelText);
+        renderAll();
+        closeEditPanel();
+      });
     }
 
     async function applyMachineHeaderUpdate() {
@@ -560,6 +609,7 @@
       editToolbar.classList.toggle('active', editMode);
       canvasWrap.classList.toggle('edit-active', editMode);
       machineHeaderEditor.classList.toggle('active', !!(editMode && graph));
+      machineTitle.style.display = editMode && graph ? 'none' : '';
       rollbackBtn.disabled = editHistory.length === 0;
       rollbackBtn.style.opacity = editHistory.length === 0 ? '0.5' : '1';
       rollbackBtn.style.cursor = editHistory.length === 0 ? 'not-allowed' : 'pointer';
@@ -2999,16 +3049,7 @@
       rerenderPreservingPositions();
       updateEditModeUI();
     });
-    newMachineBtn.addEventListener('click', () => {
-      const currentCacheKey = graph?.layoutCacheKey || null;
-      if (currentCacheKey) clearLayoutCache(currentCacheKey);
-      const seed = buildNewStateMachineXml();
-      brokerFileHandle = null;
-      kernelFileHandle = null;
-      setXmlText('broker', seed.brokerText);
-      setXmlText('kernel', seed.kernelText);
-      renderAll();
-    });
+    newMachineBtn.addEventListener('click', openNewMachineDialog);
     addStateBtn.addEventListener('click', () => openStateEditor());
     machineIdInput.addEventListener('change', applyMachineHeaderUpdate);
     machineNameInput.addEventListener('change', applyMachineHeaderUpdate);
