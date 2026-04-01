@@ -10,6 +10,9 @@
     const edgeTooltip = document.getElementById('edgeTooltip');
     const exportBtn = document.getElementById('exportBtn');
     const resetLayoutBtn = document.getElementById('resetLayoutBtn');
+    const zoomOutBtn = document.getElementById('zoomOutBtn');
+    const zoomInBtn = document.getElementById('zoomInBtn');
+    const zoomValue = document.getElementById('zoomValue');
     const editModeBtn = document.getElementById('editModeBtn');
     const editWarning = document.getElementById('editWarning');
     const editToolbar = document.getElementById('editToolbar');
@@ -25,10 +28,12 @@
     const spacingValue = document.getElementById('spacingValue');
     const brokerFileBtn = document.getElementById('brokerFileBtn');
     const brokerEditBtn = document.getElementById('brokerEditBtn');
+    const brokerSaveBtn = document.getElementById('brokerSaveBtn');
     const brokerFileInput = document.getElementById('brokerFileInput');
     const brokerStatus = document.getElementById('brokerStatus');
     const kernelFileBtn = document.getElementById('kernelFileBtn');
     const kernelEditBtn = document.getElementById('kernelEditBtn');
+    const kernelSaveBtn = document.getElementById('kernelSaveBtn');
     const kernelFileInput = document.getElementById('kernelFileInput');
     const kernelStatus = document.getElementById('kernelStatus');
     const summaryPanel = document.getElementById('summaryPanel');
@@ -86,6 +91,7 @@
     let dragMoved = false;
     let svgDragHandlersBound = false;
     let spacingScale = Number(spacingRange.value || 100) / 100;
+    let graphZoom = 1;
     let legendCollapsed = false;
     let autoRenderTimer = null;
     let editMode = false;
@@ -175,6 +181,27 @@
     function showError(message) {
       errorBox.textContent = message;
       errorBox.style.display = 'block';
+    }
+
+    function updateZoomLabel() {
+      if (zoomValue) zoomValue.textContent = `${Math.round(graphZoom * 100)}%`;
+    }
+
+    function applyGraphZoom() {
+      const width = Number(svg.getAttribute('width')) || svg.viewBox.baseVal.width || 0;
+      const height = Number(svg.getAttribute('height')) || svg.viewBox.baseVal.height || 0;
+      if (!width || !height) {
+        updateZoomLabel();
+        return;
+      }
+      svg.style.width = `${Math.round(width * graphZoom)}px`;
+      svg.style.height = `${Math.round(height * graphZoom)}px`;
+      updateZoomLabel();
+    }
+
+    function setGraphZoom(nextZoom) {
+      graphZoom = Math.max(0.4, Math.min(2.2, nextZoom));
+      applyGraphZoom();
     }
 
     function getXmlPair(kind) {
@@ -412,10 +439,11 @@
         xmlToastTimer = null;
       }
       const valid = !!diagnostic?.valid;
+      const label = diagnostic?.label || (valid ? 'XML Valido' : 'XML Non valido');
       xmlToast.className = `xml-toast open ${valid ? 'valid' : 'invalid'}`;
       xmlToast.innerHTML = `
         <span class="xml-toast-badge">${valid ? 'V' : 'X'}</span>
-        <span>${valid ? 'XML Valido' : 'XML Non valido'}</span>
+        <span>${label}</span>
       `;
       xmlToastTimer = setTimeout(() => {
         xmlToast.className = 'xml-toast';
@@ -683,6 +711,43 @@
       const writable = await handle.createWritable();
       await writable.write(text);
       await writable.close();
+    }
+
+    function getXmlRootIdForSave(kind, text) {
+      const trimmed = String(text || '').trim();
+      if (!trimmed) throw new Error(`Nessun contenuto ${kind === 'broker' ? 'Broker' : 'Kernel'} da salvare`);
+      const doc = xmlFromString(trimmed);
+      if (kind === 'broker') {
+        const broker = parseBroker(doc);
+        return broker.id || broker.fsmId || broker.name || 'state-machine';
+      }
+      const kernel = parseKernel(doc);
+      return kernel.id || kernel.name || 'state-machine';
+    }
+
+    async function ensureXmlFileHandle(kind, text) {
+      const currentHandle = kind === 'broker' ? brokerFileHandle : kernelFileHandle;
+      if (currentHandle?.createWritable) return currentHandle;
+      if (!window.showDirectoryPicker) {
+        throw new Error('Salvataggio su file non supportato da questo browser');
+      }
+
+      const stateMachineId = getXmlRootIdForSave(kind, text);
+      const rootDir = await window.showDirectoryPicker({ mode: 'readwrite' });
+      const subDir = await rootDir.getDirectoryHandle(kind, { create: true });
+      const fileHandle = await subDir.getFileHandle(`${stateMachineId}.xml`, { create: true });
+
+      if (kind === 'broker') brokerFileHandle = fileHandle;
+      else kernelFileHandle = fileHandle;
+      return fileHandle;
+    }
+
+    async function saveXmlFile(kind) {
+      const pair = getXmlPair(kind);
+      const text = String(pair.source.value || pair.editor.value || '').trim();
+      const handle = await ensureXmlFileHandle(kind, text);
+      await writeTextToHandle(handle, text);
+      showXmlToast({ valid: true, label: `${kind === 'broker' ? 'Broker XML' : 'Kernel XML'} salvato` });
     }
 
     async function persistXmlToFiles() {
@@ -1059,6 +1124,7 @@
       svg.setAttribute('width', maxX);
       svg.setAttribute('height', maxY);
       svg.setAttribute('font-family', SVG_FONT_STACK);
+      applyGraphZoom();
 
       const edgeLayer = createSvg('g', { id: 'edgeLayer' });
       const nodeLayer = createSvg('g', { id: 'nodeLayer' });
@@ -1788,7 +1854,9 @@
       resetNodeFocus();
 
       const serializer = new XMLSerializer();
-      const source = serializer.serializeToString(svg);
+      const exportSvg = svg.cloneNode(true);
+      exportSvg.querySelectorAll('.node-action, .edge-action, #pendingTransitionLayer').forEach(el => el.remove());
+      const source = serializer.serializeToString(exportSvg);
       const svgBlob = new Blob([source], { type: 'image/svg+xml;charset=utf-8' });
       const url = URL.createObjectURL(svgBlob);
 
@@ -2844,6 +2912,8 @@
         showError(`Export PNG fallito: ${err.message || err}`);
       });
     });
+    zoomOutBtn.addEventListener('click', () => setGraphZoom(graphZoom - 0.1));
+    zoomInBtn.addEventListener('click', () => setGraphZoom(graphZoom + 0.1));
     resetLayoutBtn.addEventListener('click', () => {
       if (!graph) return;
       clearLayoutCache(graph.layoutCacheKey);
@@ -2905,6 +2975,20 @@
     });
     brokerEditBtn.addEventListener('click', () => openXmlWindow('broker'));
     kernelEditBtn.addEventListener('click', () => openXmlWindow('kernel'));
+    brokerSaveBtn.addEventListener('click', async () => {
+      try {
+        await saveXmlFile('broker');
+      } catch (err) {
+        showError(`Salvataggio Broker XML fallito: ${err.message || err}`);
+      }
+    });
+    kernelSaveBtn.addEventListener('click', async () => {
+      try {
+        await saveXmlFile('kernel');
+      } catch (err) {
+        showError(`Salvataggio Kernel XML fallito: ${err.message || err}`);
+      }
+    });
     brokerWindowClose.addEventListener('click', () => closeXmlWindow('broker'));
     kernelWindowClose.addEventListener('click', () => closeXmlWindow('kernel'));
     brokerFileInput.addEventListener('change', async () => {
@@ -3171,3 +3255,4 @@
 </StateMachine>`;
 
     bootstrapDefaultMachine();
+    updateZoomLabel();

@@ -28,6 +28,12 @@
               <path d="M4 16.5V20h3.5L18.2 9.3l-3.5-3.5L4 16.5zm11.7-11.7l1.5-1.5a1.8 1.8 0 012.5 0l1.4 1.4a1.8 1.8 0 010 2.5l-1.5 1.5-3.9-3.9z" fill="currentColor"/>
             </svg>
           </button>
+          <button type="button" class="file-btn save-btn" id="brokerSaveBtn" title="Salva Broker XML" aria-label="Salva Broker XML">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 4h11l3 3v13H5V4zm2 2v4h8V6H7zm0 8v4h10v-4H7z" fill="currentColor"/>
+              <path d="M9 6h4v3H9V6z" fill="#ffffff"/>
+            </svg>
+          </button>
           <button type="button" class="file-btn" id="brokerFileBtn" title="Apri file" aria-label="Apri file Broker XML">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M3 7a2 2 0 012-2h4.2l1.7 1.8H19a2 2 0 012 2v1H3V7z" fill="#facc15"/>
@@ -49,6 +55,12 @@
           <button type="button" class="file-btn edit-btn" id="kernelEditBtn" title="Modifica Kernel XML" aria-label="Modifica Kernel XML">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M4 16.5V20h3.5L18.2 9.3l-3.5-3.5L4 16.5zm11.7-11.7l1.5-1.5a1.8 1.8 0 012.5 0l1.4 1.4a1.8 1.8 0 010 2.5l-1.5 1.5-3.9-3.9z" fill="currentColor"/>
+            </svg>
+          </button>
+          <button type="button" class="file-btn save-btn" id="kernelSaveBtn" title="Salva Kernel XML" aria-label="Salva Kernel XML">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 4h11l3 3v13H5V4zm2 2v4h8V6H7zm0 8v4h10v-4H7z" fill="currentColor"/>
+              <path d="M9 6h4v3H9V6z" fill="#ffffff"/>
             </svg>
           </button>
           <button type="button" class="file-btn" id="kernelFileBtn" title="Apri file" aria-label="Apri file Kernel XML">
@@ -125,6 +137,19 @@
           <div class="meta" id="machineMeta">Incolla i due XML o apri i file corrispondenti.</div>
         </div>
         <div class="topbar-actions">
+          <div class="zoom-controls" aria-label="Zoom grafo">
+            <button type="button" class="export-btn zoom-btn" id="zoomOutBtn" title="Zoom out" aria-label="Zoom out">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M10.5 4a6.5 6.5 0 104.06 11.58l4.43 4.43 1.41-1.41-4.43-4.43A6.5 6.5 0 0010.5 4zm-3 6h6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </button>
+            <div class="zoom-value" id="zoomValue">100%</div>
+            <button type="button" class="export-btn zoom-btn" id="zoomInBtn" title="Zoom in" aria-label="Zoom in">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M10.5 4a6.5 6.5 0 104.06 11.58l4.43 4.43 1.41-1.41-4.43-4.43A6.5 6.5 0 0010.5 4zm0 3v6m-3-3h6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </button>
+          </div>
           <button type="button" class="export-btn edit-mode-btn" id="editModeBtn" title="Attiva/disattiva modalita modifica" aria-label="Attiva/disattiva modalita modifica">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M4 16.5V20h3.5L18.2 9.3l-3.5-3.5L4 16.5zm11.7-11.7l1.5-1.5a1.8 1.8 0 012.5 0l1.4 1.4a1.8 1.8 0 010 2.5l-1.5 1.5-3.9-3.9z" fill="currentColor"/>

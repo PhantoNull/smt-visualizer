@@ -16,6 +16,11 @@
     }
 
     * { box-sizing: border-box; }
+    html, body {
+      height: 100%;
+      overflow: hidden;
+    }
+
     body {
       margin: 0;
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
@@ -27,9 +32,11 @@
     .app {
       display: grid;
       grid-template-columns: 420px 1fr;
-      min-height: 100vh;
+      height: 100vh;
+      min-height: 0;
       gap: 18px;
       padding: 18px;
+      overflow: hidden;
     }
 
     .panel {
@@ -45,6 +52,7 @@
       flex-direction: column;
       gap: 14px;
       overflow: auto;
+      min-height: 0;
     }
 
     h1 {
@@ -162,6 +170,12 @@
       height: 12.75px;
     }
 
+    .file-btn.save-btn {
+      color: #1d4ed8;
+      background: #eef4ff;
+      border-color: #c7d7fe;
+    }
+
     .row { display: flex; gap: 10px; flex-wrap: wrap; }
     .row > * { flex: 1; }
 
@@ -201,6 +215,7 @@
     .canvas-wrap {
       position: relative;
       min-width: 0;
+      min-height: 0;
       overflow: hidden;
       display: flex;
       flex-direction: column;
@@ -225,6 +240,39 @@
       align-items: center;
       gap: 10px;
       flex: 0 0 auto;
+    }
+
+    .zoom-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 0 0 auto;
+    }
+
+    .zoom-btn {
+      width: 46px;
+      height: 46px;
+      border-radius: 14px;
+    }
+
+    .zoom-btn svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .zoom-value {
+      min-width: 56px;
+      padding: 0 10px;
+      height: 46px;
+      display: inline-grid;
+      place-items: center;
+      border: 1px solid #d7dfec;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.96);
+      box-shadow: var(--shadow);
+      color: #22304a;
+      font-size: 13px;
+      font-weight: 800;
     }
 
     .title-wrap { min-width: 0; }
@@ -279,6 +327,7 @@
     .viewport {
       position: relative;
       flex: 1;
+      min-height: 0;
       overflow: auto;
       background:
         radial-gradient(circle at 1px 1px, #e8ecf5 1px, transparent 0) 0 0 / 24px 24px,
@@ -287,9 +336,8 @@
 
     svg {
       display: block;
-      min-width: 100%;
-      min-height: 100%;
     }
+
 
     .legend {
       position: absolute;
