@@ -14,6 +14,7 @@
     const exportBtn = document.getElementById('exportBtn');
     const resetLayoutBtn = document.getElementById('resetLayoutBtn');
     const newMachineBtn = document.getElementById('newMachineBtn');
+    const cleanupBrokerBtn = document.getElementById('cleanupBrokerBtn');
     const zoomOutBtn = document.getElementById('zoomOutBtn');
     const zoomInBtn = document.getElementById('zoomInBtn');
     const zoomValue = document.getElementById('zoomValue');
@@ -530,6 +531,49 @@
         brokerText: serializeBroker(broker),
         kernelText: serializeKernel(kernel)
       };
+    }
+
+    async function cleanupUnusedBrokerArtifacts() {
+      if (!brokerInput.value.trim() || !kernelInput.value.trim()) {
+        showError('Carica prima Broker XML e Kernel XML');
+        return;
+      }
+
+      try {
+        let removedEvents = [];
+        let removedOutputs = [];
+        await applyEditableMutation(async (broker, kernel) => {
+          const usedEventIds = new Set(kernel.transitions.map(transition => transition.eventId).filter(Boolean));
+          const usedOutputIds = new Set(kernel.transitions.map(transition => transition.outputId).filter(Boolean));
+          removedEvents = broker.inputEvents.filter(event => !usedEventIds.has(event.id));
+          removedOutputs = broker.outputs.filter(output => !usedOutputIds.has(output.id));
+          broker.inputEvents = broker.inputEvents.filter(event => usedEventIds.has(event.id));
+          broker.outputs = broker.outputs.filter(output => usedOutputIds.has(output.id));
+        });
+        showXmlToast({ valid: true, label: 'Pulizia broker completata' });
+        openEditPanel(
+          'Pulizia broker completata',
+          'Report degli InputEvent e OutputFunction rimossi dal Broker XML perché non più referenziati da alcuna transizione.',
+          `
+            <div class="cleanup-report">
+              <div class="cleanup-report-section">
+                <h4 class="cleanup-report-title">InputEvent rimossi</h4>
+                ${removedEvents.length
+                  ? `<ul class="cleanup-report-list">${removedEvents.map(event => `<li><code>${escapeHtml(event.id)}</code> ${escapeHtml(event.name)}</li>`).join('')}</ul>`
+                  : '<div class="summary-empty">Nessun InputEvent rimosso.</div>'}
+              </div>
+              <div class="cleanup-report-section">
+                <h4 class="cleanup-report-title">OutputFunction rimossi</h4>
+                ${removedOutputs.length
+                  ? `<ul class="cleanup-report-list">${removedOutputs.map(output => `<li><code>${escapeHtml(output.id)}</code> ${escapeHtml(output.name)}</li>`).join('')}</ul>`
+                  : '<div class="summary-empty">Nessun OutputFunction rimosso.</div>'}
+              </div>
+            </div>
+          `
+        );
+      } catch (err) {
+        showError(`Pulizia broker fallita: ${err.message || err}`);
+      }
     }
 
     function openNewMachineDialog() {
@@ -2228,13 +2272,13 @@
               <option value="__new__" ${selectedEventMode === '__new__' ? 'selected' : ''}>Nuovo input event...</option>
             </select>
           </div>
-          <div class="edit-field">
-            <label for="${prefix}EventName">Input event nome</label>
-            <input id="${prefix}EventName" name="${prefix}EventName" value="${escapeHtml(eventName)}" placeholder="Nome input event" ${knownEvent ? 'readonly' : ''} />
-          </div>
-          <div class="edit-field">
+          <div class="edit-field" data-event-extra>
             <label for="${prefix}EventIdCustom">Nuovo input event ID</label>
-            <input id="${prefix}EventIdCustom" name="${prefix}EventIdCustom" value="${knownEvent ? '' : escapeHtml(eventId)}" placeholder="Compila solo per nuovo input event" ${knownEvent ? 'disabled' : ''} />
+            <input id="${prefix}EventIdCustom" name="${prefix}EventIdCustom" value="${knownEvent ? '' : escapeHtml(eventId)}" placeholder="ID" ${knownEvent ? 'disabled' : ''} />
+          </div>
+          <div class="edit-field" data-event-extra>
+            <label for="${prefix}EventName">Input event nome</label>
+            <input id="${prefix}EventName" name="${prefix}EventName" value="${escapeHtml(eventName)}" placeholder="Nome esteso evento" ${knownEvent ? 'readonly' : ''} />
           </div>
 
           <hr class="edit-section-divider" />
@@ -2246,13 +2290,13 @@
               <option value="__new__" ${selectedOutputMode === '__new__' ? 'selected' : ''}>Nuovo output...</option>
             </select>
           </div>
-          <div class="edit-field">
-            <label for="${prefix}OutputName">Output nome</label>
-            <input id="${prefix}OutputName" name="${prefix}OutputName" value="${escapeHtml(outputName)}" placeholder="Nome output" ${knownOutput ? 'readonly' : ''} />
-          </div>
-          <div class="edit-field">
+          <div class="edit-field" data-output-extra>
             <label for="${prefix}OutputIdCustom">Nuovo output ID</label>
-            <input id="${prefix}OutputIdCustom" name="${prefix}OutputIdCustom" value="${knownOutput ? '' : escapeHtml(outputId)}" placeholder="Compila solo per nuovo output" ${knownOutput ? 'disabled' : ''} />
+            <input id="${prefix}OutputIdCustom" name="${prefix}OutputIdCustom" value="${knownOutput ? '' : escapeHtml(outputId)}" placeholder="ID" ${knownOutput ? 'disabled' : ''} />
+          </div>
+          <div class="edit-field" data-output-extra>
+            <label for="${prefix}OutputName">Output nome</label>
+            <input id="${prefix}OutputName" name="${prefix}OutputName" value="${escapeHtml(outputName)}" placeholder="Nome esteso output" ${knownOutput ? 'readonly' : ''} />
           </div>
         </div>
       `;
@@ -2339,11 +2383,13 @@
         const prefix = select.name.replace('EventId', '');
         const nameInput = container.querySelector(`[name="${prefix}EventName"]`);
         const customIdInput = container.querySelector(`[name="${prefix}EventIdCustom"]`);
+        const extraFields = container.querySelectorAll('[data-event-extra]');
         const sync = () => {
           if (select.value === '__new__') {
             customIdInput.disabled = false;
             nameInput.readOnly = false;
             nameInput.setAttribute('aria-readonly', 'false');
+            extraFields.forEach(field => field.classList.remove('is-hidden'));
             if (!customIdInput.value) customIdInput.value = '';
             if (!nameInput.value || nameInput.value === brokerEventNameById(select.dataset.prevValue || '')) nameInput.value = '';
           } else {
@@ -2352,6 +2398,7 @@
             nameInput.readOnly = true;
             nameInput.setAttribute('aria-readonly', 'true');
             nameInput.value = brokerEventNameById(select.value) || select.value;
+            extraFields.forEach(field => field.classList.add('is-hidden'));
           }
           select.dataset.prevValue = select.value;
         };
@@ -2363,11 +2410,13 @@
         const prefix = select.name.replace('OutputId', '');
         const nameInput = container.querySelector(`[name="${prefix}OutputName"]`);
         const customIdInput = container.querySelector(`[name="${prefix}OutputIdCustom"]`);
+        const extraFields = container.querySelectorAll('[data-output-extra]');
         const sync = () => {
           if (select.value === '__new__') {
             customIdInput.disabled = false;
             nameInput.readOnly = false;
             nameInput.setAttribute('aria-readonly', 'false');
+            extraFields.forEach(field => field.classList.remove('is-hidden'));
             if (!customIdInput.value) customIdInput.value = '';
             if (!nameInput.value || nameInput.value === brokerOutputNameById(select.dataset.prevValue || '')) nameInput.value = '';
           } else {
@@ -2376,6 +2425,7 @@
             nameInput.readOnly = true;
             nameInput.setAttribute('aria-readonly', 'true');
             nameInput.value = brokerOutputNameById(select.value) || select.value;
+            extraFields.forEach(field => field.classList.add('is-hidden'));
           }
           select.dataset.prevValue = select.value;
         };
@@ -3050,6 +3100,7 @@
       updateEditModeUI();
     });
     newMachineBtn.addEventListener('click', openNewMachineDialog);
+    cleanupBrokerBtn.addEventListener('click', cleanupUnusedBrokerArtifacts);
     addStateBtn.addEventListener('click', () => openStateEditor());
     machineIdInput.addEventListener('change', applyMachineHeaderUpdate);
     machineNameInput.addEventListener('change', applyMachineHeaderUpdate);
