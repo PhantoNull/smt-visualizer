@@ -85,7 +85,7 @@
       </div>
 
       <div class="row">
-        <label class="toggle"><input type="checkbox" id="showReachableCascade" /> mostra nodi raggiungibili discendenti</label>
+        <label class="toggle"><input type="checkbox" id="showReachableCascade" /> mostra i nodi raggiungibili discendenti al passaggio del mouse su un nodo</label>
       </div>
 
       <div class="row">
@@ -135,8 +135,17 @@
             </div>
           </div>
           <div class="meta" id="machineMeta">Incolla i due XML o apri i file corrispondenti.</div>
+          <div class="machine-header-edit" id="machineHeaderEditor">
+            <input type="text" id="machineIdInput" placeholder="ID macchina" />
+            <input type="text" id="machineNameInput" placeholder="Nome macchina" />
+          </div>
         </div>
         <div class="topbar-actions">
+          <button type="button" class="export-btn new-machine-btn" id="newMachineBtn" title="Nuova state machine" aria-label="Nuova state machine">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
           <div class="zoom-controls" aria-label="Zoom grafo">
             <button type="button" class="export-btn zoom-btn" id="zoomOutBtn" title="Zoom out" aria-label="Zoom out">
               <svg viewBox="0 0 24 24" aria-hidden="true">

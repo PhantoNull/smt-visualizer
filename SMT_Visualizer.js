@@ -6,10 +6,14 @@
     const errorBox = document.getElementById('errorBox');
     const machineTitle = document.getElementById('machineTitle');
     const machineMeta = document.getElementById('machineMeta');
+    const machineHeaderEditor = document.getElementById('machineHeaderEditor');
+    const machineIdInput = document.getElementById('machineIdInput');
+    const machineNameInput = document.getElementById('machineNameInput');
     const viewport = document.getElementById('viewport');
     const edgeTooltip = document.getElementById('edgeTooltip');
     const exportBtn = document.getElementById('exportBtn');
     const resetLayoutBtn = document.getElementById('resetLayoutBtn');
+    const newMachineBtn = document.getElementById('newMachineBtn');
     const zoomOutBtn = document.getElementById('zoomOutBtn');
     const zoomInBtn = document.getElementById('zoomInBtn');
     const zoomValue = document.getElementById('zoomValue');
@@ -95,6 +99,7 @@
     let legendCollapsed = false;
     let autoRenderTimer = null;
     let editMode = false;
+    let machineHeaderSyncing = false;
     let brokerFileHandle = null;
     let kernelFileHandle = null;
     let editHistory = [];
@@ -483,11 +488,78 @@
       inner?.setAttribute('stroke', palette.innerStroke);
     }
 
+    function syncMachineHeader(model = graph) {
+      if (!model) {
+        machineTitle.textContent = 'Nessuna macchina caricata';
+        machineMeta.textContent = 'Incolla i due XML o apri i file corrispondenti.';
+        machineHeaderEditor.classList.remove('active');
+        return;
+      }
+
+      const machineId = model.kernel.id || model.broker.id || 'FSM';
+      const machineName = model.kernel.name || model.broker.name || '';
+      machineTitle.textContent = `${machineId} - ${machineName}`;
+      machineMeta.textContent = `Versione kernel: ${model.kernel.version || 'n/d'} - Stato iniziale: ${model.initial.id} - Drag&drop attivo`;
+
+      machineHeaderSyncing = true;
+      machineIdInput.value = machineId;
+      machineNameInput.value = machineName;
+      machineHeaderSyncing = false;
+      machineHeaderEditor.classList.toggle('active', editMode);
+    }
+
+    function buildNewStateMachineXml() {
+      const broker = {
+        id: 'FSM_NEW',
+        name: 'New state machine',
+        fsmId: 'FSM_NEW',
+        states: [{ id: 'S0', name: 'Initial', initial: true, final: false }],
+        inputEvents: [],
+        outputs: []
+      };
+      const kernel = {
+        id: 'FSM_NEW',
+        name: 'New state machine',
+        version: '1.0',
+        states: [{ id: 'S0', name: 'Initial', initial: true, final: false }],
+        transitions: []
+      };
+      return {
+        brokerText: serializeBroker(broker),
+        kernelText: serializeKernel(kernel)
+      };
+    }
+
+    async function applyMachineHeaderUpdate() {
+      if (!editMode || !graph || machineHeaderSyncing) return;
+      const nextId = String(machineIdInput.value || '').trim();
+      const nextName = String(machineNameInput.value || '').trim();
+      if (!nextId || !nextName) {
+        showError('ID e nome macchina sono obbligatori');
+        syncMachineHeader(graph);
+        return;
+      }
+
+      try {
+        await applyEditableMutation(async (broker, kernel) => {
+          broker.id = nextId;
+          broker.fsmId = nextId;
+          broker.name = nextName;
+          kernel.id = nextId;
+          kernel.name = nextName;
+        });
+      } catch (err) {
+        showError(`Aggiornamento macchina fallito: ${err.message || err}`);
+        syncMachineHeader(graph);
+      }
+    }
+
     function updateEditModeUI() {
       editModeBtn.classList.toggle('active', editMode);
       editWarning.classList.toggle('active', editMode);
       editToolbar.classList.toggle('active', editMode);
       canvasWrap.classList.toggle('edit-active', editMode);
+      machineHeaderEditor.classList.toggle('active', !!(editMode && graph));
       rollbackBtn.disabled = editHistory.length === 0;
       rollbackBtn.style.opacity = editHistory.length === 0 ? '0.5' : '1';
       rollbackBtn.style.cursor = editHistory.length === 0 ? 'not-allowed' : 'pointer';
@@ -1831,7 +1903,7 @@
       const uniqueReachableCount = countReachableTargets(nodeId);
 
       summaryTitle.textContent = `${node.name} (${node.id})`;
-      summarySub.textContent = `${directEdges.length} transizioni dirette - ${uniqueReachableCount} nodi raggiungibili`;
+      summarySub.textContent = `${directEdges.length} transizioni dirette - ${uniqueReachableCount} nodi direttamente e indirettamente raggiungibili`;
 
       summaryBody.innerHTML = `
         <div class="summary-section">
@@ -1932,8 +2004,7 @@
       });
       updateLegendCollapsedState();
 
-      machineTitle.textContent = `${model.kernel.id || model.broker.id || 'FSM'} - ${model.kernel.name || model.broker.name || ''}`;
-      machineMeta.textContent = `Versione kernel: ${model.kernel.version || 'n/d'} - Stato iniziale: ${model.initial.id} - Drag&drop attivo`;
+      syncMachineHeader(model);
     }
 
     function rerenderGraph() {
@@ -1957,8 +2028,7 @@
       closeNodeSummary();
       closeEditPanel();
       errorBox.style.display = 'none';
-      machineTitle.textContent = 'Nessuna macchina caricata';
-      machineMeta.textContent = 'Incolla i due XML o apri i file corrispondenti.';
+      syncMachineHeader(null);
       updateEditModeUI();
     }
 
@@ -2929,7 +2999,27 @@
       rerenderPreservingPositions();
       updateEditModeUI();
     });
+    newMachineBtn.addEventListener('click', () => {
+      const currentCacheKey = graph?.layoutCacheKey || null;
+      if (currentCacheKey) clearLayoutCache(currentCacheKey);
+      const seed = buildNewStateMachineXml();
+      brokerFileHandle = null;
+      kernelFileHandle = null;
+      setXmlText('broker', seed.brokerText);
+      setXmlText('kernel', seed.kernelText);
+      renderAll();
+    });
     addStateBtn.addEventListener('click', () => openStateEditor());
+    machineIdInput.addEventListener('change', applyMachineHeaderUpdate);
+    machineNameInput.addEventListener('change', applyMachineHeaderUpdate);
+    [machineIdInput, machineNameInput].forEach(input => {
+      input.addEventListener('keydown', event => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          input.blur();
+        }
+      });
+    });
     rollbackBtn.addEventListener('click', async () => {
       const snapshot = editHistory.pop();
       updateEditModeUI();
