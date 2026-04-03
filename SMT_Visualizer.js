@@ -15,6 +15,11 @@
     const resetLayoutBtn = document.getElementById('resetLayoutBtn');
     const newMachineBtn = document.getElementById('newMachineBtn');
     const cleanupBrokerBtn = document.getElementById('cleanupBrokerBtn');
+    const renderModeBtn = document.getElementById('renderModeBtn');
+    const renderModeLabel = document.getElementById('renderModeLabel');
+    const sceneRotateBtn = document.getElementById('sceneRotateBtn');
+    const sceneOrientation = document.getElementById('sceneOrientation');
+    const sceneOrientationSvg = document.getElementById('sceneOrientationSvg');
     const zoomOutBtn = document.getElementById('zoomOutBtn');
     const zoomInBtn = document.getElementById('zoomInBtn');
     const zoomValue = document.getElementById('zoomValue');
@@ -85,6 +90,11 @@
     const LABEL_SOURCE_OFFSET = 18;
     const CHEVRON_SPACING = 34;
     const CHEVRON_SIZE = 7;
+    const DEPTH_GAP_3D = 220;
+    const NODE_SPREAD_3D = 180;
+    const CAMERA_DISTANCE_3D = 1100;
+    const SPHERE_RADIUS_3D = 36;
+    const SCENE_LIGHT = { x: -0.7, y: -0.85, z: 0.55 };
 
     let graph = null;
     let dragged = null;
@@ -97,6 +107,8 @@
     let svgDragHandlersBound = false;
     let spacingScale = Number(spacingRange.value || 100) / 100;
     let graphZoom = 1;
+    let renderMode = '2d';
+    let viewportWheelZoomActive = false;
     let legendCollapsed = false;
     let autoRenderTimer = null;
     let editMode = false;
@@ -109,6 +121,13 @@
     let pendingTransitionStartId = null;
     let pendingTransitionPointer = null;
     let confirmResolver = null;
+    let sceneRotation = { x: -0.45, y: -0.75 };
+    let sceneDrag = null;
+    let scenePan = { x: 0, y: 0 };
+    let sceneCameraDistance = CAMERA_DISTANCE_3D;
+    let sceneFramePending = false;
+    let sceneAutoRotate = false;
+    let sceneAutoRotateFrame = null;
     let editDialogOffset = { x: 0, y: 0 };
     let editDialogDrag = null;
     const xmlWindowState = {
@@ -193,6 +212,27 @@
       if (zoomValue) zoomValue.textContent = `${Math.round(graphZoom * 100)}%`;
     }
 
+    function updateRenderModeUI() {
+      if (renderModeBtn) {
+        const is3d = renderMode === '3d';
+        renderModeBtn.classList.toggle('active', is3d);
+        renderModeBtn.title = is3d ? 'Torna a modalita 2D' : 'Passa a modalita 3D';
+        renderModeBtn.setAttribute('aria-label', renderModeBtn.title);
+      }
+      if (renderModeLabel) renderModeLabel.textContent = renderMode === '3d' ? '3D' : '2D';
+      if (sceneRotateBtn) {
+        const is3d = renderMode === '3d';
+        sceneRotateBtn.classList.toggle('active', is3d);
+        sceneRotateBtn.textContent = sceneAutoRotate ? 'Stop rotazione' : 'Riprendi rotazione';
+        sceneRotateBtn.title = sceneAutoRotate ? 'Ferma rotazione automatica' : 'Riprendi rotazione automatica';
+        sceneRotateBtn.setAttribute('aria-label', sceneRotateBtn.title);
+      }
+      if (sceneOrientation) sceneOrientation.classList.toggle('active', renderMode === '3d');
+      viewport.classList.toggle('mode-3d', renderMode === '3d');
+      viewport.classList.toggle('rotating', !!sceneDrag);
+      updateSceneOrientationWidget();
+    }
+
     function applyGraphZoom() {
       const width = Number(svg.getAttribute('width')) || svg.viewBox.baseVal.width || 0;
       const height = Number(svg.getAttribute('height')) || svg.viewBox.baseVal.height || 0;
@@ -200,14 +240,76 @@
         updateZoomLabel();
         return;
       }
-      svg.style.width = `${Math.round(width * graphZoom)}px`;
-      svg.style.height = `${Math.round(height * graphZoom)}px`;
+      const effectiveZoom = renderMode === '3d' ? 1 : graphZoom;
+      svg.style.width = `${Math.round(width * effectiveZoom)}px`;
+      svg.style.height = `${Math.round(height * effectiveZoom)}px`;
       updateZoomLabel();
     }
 
     function setGraphZoom(nextZoom) {
       graphZoom = Math.max(0.4, Math.min(2.2, nextZoom));
       applyGraphZoom();
+    }
+
+    function setSceneCameraDistance(nextDistance) {
+      sceneCameraDistance = Math.max(420, Math.min(2400, nextDistance));
+      rerenderGraph();
+    }
+
+    function toggleRenderMode() {
+      renderMode = renderMode === '2d' ? '3d' : '2d';
+      if (renderMode === '3d') {
+        scenePan = { x: 0, y: 0 };
+        sceneCameraDistance = CAMERA_DISTANCE_3D;
+        sceneAutoRotate = true;
+        startSceneAutoRotate();
+      } else {
+        stopSceneAutoRotate();
+        sceneAutoRotate = false;
+      }
+      sceneDrag = null;
+      updateRenderModeUI();
+      rerenderPreservingPositions();
+    }
+
+    function setViewportWheelZoomActive(active) {
+      viewportWheelZoomActive = !!active;
+      viewport.classList.toggle('wheel-zoom-active', viewportWheelZoomActive);
+    }
+
+    function startSceneAutoRotate() {
+      if (sceneAutoRotateFrame || renderMode !== '3d' || !sceneAutoRotate) return;
+      let lastTs = 0;
+      const tick = ts => {
+        if (!sceneAutoRotate || renderMode !== '3d') {
+          sceneAutoRotateFrame = null;
+          return;
+        }
+        if (!lastTs) lastTs = ts;
+        const dt = Math.min(32, ts - lastTs);
+        lastTs = ts;
+        sceneRotation.y += dt * 0.00055;
+        scheduleSceneRender();
+        sceneAutoRotateFrame = requestAnimationFrame(tick);
+      };
+      sceneAutoRotateFrame = requestAnimationFrame(tick);
+      updateRenderModeUI();
+    }
+
+    function stopSceneAutoRotate() {
+      if (sceneAutoRotateFrame) {
+        cancelAnimationFrame(sceneAutoRotateFrame);
+        sceneAutoRotateFrame = null;
+      }
+      updateRenderModeUI();
+    }
+
+    function toggleSceneAutoRotate() {
+      if (renderMode !== '3d') return;
+      sceneAutoRotate = !sceneAutoRotate;
+      if (sceneAutoRotate) startSceneAutoRotate();
+      else stopSceneAutoRotate();
+      updateRenderModeUI();
     }
 
     function getXmlPair(kind) {
@@ -478,12 +580,148 @@
       };
     }
 
+    function shiftHexColor(hex, amount) {
+      const raw = String(hex || '').trim();
+      const normalized = raw.startsWith('#') ? raw.slice(1) : raw;
+      if (!/^[0-9a-fA-F]{6}$/.test(normalized)) return hex;
+      const clamp = value => Math.max(0, Math.min(255, value));
+      const r = clamp(parseInt(normalized.slice(0, 2), 16) + amount);
+      const g = clamp(parseInt(normalized.slice(2, 4), 16) + amount);
+      const b = clamp(parseInt(normalized.slice(4, 6), 16) + amount);
+      return `#${[r, g, b].map(value => value.toString(16).padStart(2, '0')).join('')}`;
+    }
+
+    function rotateVectorForCamera(vector) {
+      const cosY = Math.cos(sceneRotation.y);
+      const sinY = Math.sin(sceneRotation.y);
+      const cosX = Math.cos(sceneRotation.x);
+      const sinX = Math.sin(sceneRotation.x);
+      const x1 = vector.x * cosY - vector.z * sinY;
+      const z1 = vector.x * sinY + vector.z * cosY;
+      const y2 = vector.y * cosX - z1 * sinX;
+      const z2 = vector.y * sinX + z1 * cosX;
+      return { x: x1, y: y2, z: z2 };
+    }
+
+    function updateSceneOrientationWidget() {
+      if (!sceneOrientationSvg) return;
+      if (renderMode !== '3d') {
+        sceneOrientationSvg.innerHTML = '';
+        return;
+      }
+
+      const centerX = 60;
+      const centerY = 62;
+      const scale = 24;
+      const projectMini = vector => {
+        const rotated = rotateVectorForCamera(vector);
+        return {
+          x: centerX + rotated.x * scale,
+          y: centerY + rotated.y * scale,
+          z: rotated.z
+        };
+      };
+
+      const basisU = { x: 1, y: 0, z: 0 };
+      const basisV = { x: 0.5, y: 0.8660254, z: 0 };
+      const axisX = projectMini({ x: 1, y: 0, z: 0 });
+      const axisY = projectMini({ x: 0, y: 1, z: 0 });
+      const axisZ = projectMini({ x: 0, y: 0, z: 1 });
+      const lines = [];
+
+      for (let i = -2; i <= 2; i++) {
+        const a1 = projectMini({ x: basisU.x * -2 + basisV.x * i, y: basisU.y * -2 + basisV.y * i, z: 0 });
+        const a2 = projectMini({ x: basisU.x * 2 + basisV.x * i, y: basisU.y * 2 + basisV.y * i, z: 0 });
+        const b1 = projectMini({ x: basisU.x * i + basisV.x * -2, y: basisU.y * i + basisV.y * -2, z: 0 });
+        const b2 = projectMini({ x: basisU.x * i + basisV.x * 2, y: basisU.y * i + basisV.y * 2, z: 0 });
+        lines.push({ depth: (a1.z + a2.z) / 2, color: '#d7dfec', path: `M ${a1.x} ${a1.y} L ${a2.x} ${a2.y}` });
+        lines.push({ depth: (b1.z + b2.z) / 2, color: '#d7dfec', path: `M ${b1.x} ${b1.y} L ${b2.x} ${b2.y}` });
+      }
+
+      const axes = [
+        { point: axisX, color: '#b42318', label: 'X' },
+        { point: axisY, color: '#2563eb', label: 'Y' },
+        { point: axisZ, color: '#15803d', label: 'Z' }
+      ].sort((a, b) => a.point.z - b.point.z);
+
+      const parts = [
+        `<circle cx="${centerX}" cy="${centerY}" r="2.4" fill="#475569"></circle>`
+      ];
+
+      lines.sort((a, b) => a.depth - b.depth).forEach(line => {
+        parts.push(`<path d="${line.path}" fill="none" stroke="${line.color}" stroke-width="1.1" opacity="0.82"></path>`);
+      });
+
+      axes.forEach(axis => {
+        parts.push(`<path d="M ${centerX} ${centerY} L ${axis.point.x} ${axis.point.y}" fill="none" stroke="${axis.color}" stroke-width="2.3" stroke-linecap="round"></path>`);
+        parts.push(`<circle cx="${axis.point.x}" cy="${axis.point.y}" r="3" fill="${axis.color}"></circle>`);
+        parts.push(`<text x="${axis.point.x + 6}" y="${axis.point.y + 4}" font-size="11" font-weight="800" fill="${axis.color}" font-family="${SVG_FONT_STACK}">${axis.label}</text>`);
+      });
+
+      sceneOrientationSvg.innerHTML = parts.join('');
+    }
+
+    function getSceneLightProjection() {
+      const rotated = rotateVectorForCamera(SCENE_LIGHT);
+      const magnitude = Math.hypot(rotated.x, rotated.y, rotated.z) || 1;
+      const lx = rotated.x / magnitude;
+      const ly = rotated.y / magnitude;
+      const lz = rotated.z / magnitude;
+      return {
+        lx,
+        ly,
+        lz,
+        cx: `${Math.max(18, Math.min(82, 50 + lx * 22))}%`,
+        cy: `${Math.max(18, Math.min(82, 50 + ly * 22))}%`,
+        fx: `${Math.max(16, Math.min(84, 50 + lx * 30))}%`,
+        fy: `${Math.max(16, Math.min(84, 50 + ly * 30))}%`
+      };
+    }
+
+    function fitTextFontSize(text, maxWidth, preferredSize, minSize = 7) {
+      const value = String(text || '');
+      if (!value) return preferredSize;
+      const estimatedWidth = value.length * preferredSize * 0.58;
+      if (estimatedWidth <= maxWidth) return preferredSize;
+      const scaled = preferredSize * (maxWidth / Math.max(estimatedWidth, 1));
+      return Math.max(minSize, Math.min(preferredSize, scaled));
+    }
+
+    function ensureSphereGradient(nodeEl, palette) {
+      const defs = svg.querySelector('defs');
+      const nodeId = nodeEl.getAttribute('data-id') || 'node';
+      const safeFill = String(palette.fill || '').replace(/[^a-zA-Z0-9]/g, '');
+      const safeStroke = String(palette.stroke || '').replace(/[^a-zA-Z0-9]/g, '');
+      const light = getSceneLightProjection();
+      const lightKey = `${Math.round(light.lx * 10)}_${Math.round(light.ly * 10)}_${Math.round(light.lz * 10)}`;
+      const gradientId = `sphereGrad_${nodeId}_${safeFill}_${safeStroke}_${lightKey}`;
+      let gradient = defs?.querySelector(`#${gradientId}`);
+      if (!gradient && defs) {
+        gradient = createSvg('radialGradient', {
+          id: gradientId,
+          cx: light.cx,
+          cy: light.cy,
+          fx: light.fx,
+          fy: light.fy,
+          r: '72%'
+        }, defs);
+        createSvg('stop', { offset: '0%', 'stop-color': shiftHexColor(palette.fill, 18) }, gradient);
+        createSvg('stop', { offset: '30%', 'stop-color': shiftHexColor(palette.fill, 8) }, gradient);
+        createSvg('stop', { offset: '58%', 'stop-color': palette.fill }, gradient);
+        createSvg('stop', { offset: '100%', 'stop-color': shiftHexColor(palette.stroke, -30) }, gradient);
+      }
+      return gradient ? `url(#${gradientId})` : palette.fill;
+    }
+
     function applyNodeVisualState(nodeEl, state, override = null) {
       if (!nodeEl || !state) return;
       const shell = nodeEl.querySelector('.node-shell');
       const inner = nodeEl.querySelector('.node-inner-ring');
       const palette = override || getNodePalette(state);
-      shell?.setAttribute('fill', palette.fill);
+      if (shell) {
+        const fill = renderMode === '3d' ? ensureSphereGradient(nodeEl, palette) : palette.fill;
+        shell.setAttribute('fill', fill);
+      }
       shell?.setAttribute('stroke', palette.stroke);
       shell?.setAttribute('stroke-dasharray', palette.isUnreachable ? '8 6' : 'none');
       inner?.setAttribute('stroke', palette.innerStroke);
@@ -501,7 +739,7 @@
       const machineId = model.kernel.id || model.broker.id || 'FSM';
       const machineName = model.kernel.name || model.broker.name || '';
       machineTitle.textContent = `${machineId} - ${machineName}`;
-      machineMeta.textContent = `Versione kernel: ${model.kernel.version || 'n/d'} - Stato iniziale: ${model.initial.id} - Drag&drop attivo`;
+      machineMeta.textContent = `Versione kernel: ${model.kernel.version || 'n/d'} - Stato iniziale: ${model.initial.id} - Vista ${renderMode.toUpperCase()}${renderMode === '3d' ? ' con rotazione mouse' : ' con drag&drop attivo'}`;
 
       machineHeaderSyncing = true;
       machineIdInput.value = machineId;
@@ -1272,6 +1510,11 @@
     }
 
     function render(model) {
+      if (renderMode === '3d') {
+        render3D(model);
+        return;
+      }
+
       svg.innerHTML = '';
       hideEdgeTooltip();
       addDefs();
@@ -1327,6 +1570,384 @@
       for (const s of visibleStates) drawNode(s, nodeLayer);
       drawPendingTransition();
       updateLegend(model, displayEdges);
+    }
+
+    function projectPoint3D(point, center) {
+      const relX = point.x - center.x;
+      const relY = point.y - center.y;
+      const relZ = point.z - center.z;
+
+      const cosY = Math.cos(sceneRotation.y);
+      const sinY = Math.sin(sceneRotation.y);
+      const cosX = Math.cos(sceneRotation.x);
+      const sinX = Math.sin(sceneRotation.x);
+
+      const x1 = relX * cosY - relZ * sinY;
+      const z1 = relX * sinY + relZ * cosY;
+      const y2 = relY * cosX - z1 * sinX;
+      const z2 = relY * sinX + z1 * cosX;
+      const scale = sceneCameraDistance / Math.max(220, sceneCameraDistance - z2);
+
+      return {
+        x: center.x + x1 * scale,
+        y: center.y + y2 * scale,
+        depth: z2,
+        scale
+      };
+    }
+
+    function build3DScene(model, visibleStates) {
+      const spread3D = NODE_SPREAD_3D * spacingScale;
+      const groupedByLayer = new Map();
+      visibleStates.forEach(state => {
+        if (!groupedByLayer.has(state.layer)) groupedByLayer.set(state.layer, []);
+        groupedByLayer.get(state.layer).push(state);
+      });
+
+      const basisA = { x: spread3D, y: 0, z: 0 };
+      const basisB = { x: spread3D * 0.5, y: spread3D * 0.8660254, z: 0 };
+      const basisC = { x: spread3D * 0.5, y: spread3D * 0.2886751, z: spread3D * 0.8164966 };
+      const addBasis = (a, b, c) => ({
+        x: a * basisA.x + b * basisB.x + c * basisC.x,
+        y: a * basisA.y + b * basisB.y + c * basisC.y,
+        z: a * basisA.z + b * basisB.z + c * basisC.z
+      });
+
+      const node3DBase = new Map();
+      [...groupedByLayer.entries()].sort((a, b) => a[0] - b[0]).forEach(([layerIndex, list]) => {
+        const ordered = list.slice().sort((a, b) => a.y - b.y || a.x - b.x || a.id.localeCompare(b.id));
+        ordered.forEach((state, index) => {
+          const prismColumn = index % 2;
+          const prismRow = Math.floor(index / 2);
+          const lattice = addBasis(prismColumn, prismRow, layerIndex);
+          node3DBase.set(state.id, {
+            x: lattice.x,
+            y: lattice.y,
+            z: lattice.z
+          });
+        });
+      });
+
+      const points = [];
+      visibleStates.forEach(state => {
+        const base = node3DBase.get(state.id) || { x: state.x, y: state.y, z: state.layer * DEPTH_GAP_3D };
+        points.push(
+          { x: base.x, y: base.y, z: base.z },
+          { x: base.x + BOX_W, y: base.y + BOX_H, z: base.z },
+          { x: base.x + BOX_W / 2, y: base.y + BOX_H / 2, z: base.z }
+        );
+      });
+
+      const center = points.length
+        ? {
+            x: points.reduce((sum, point) => sum + point.x, 0) / points.length + scenePan.x,
+            y: points.reduce((sum, point) => sum + point.y, 0) / points.length + scenePan.y,
+            z: points.reduce((sum, point) => sum + point.z, 0) / points.length
+          }
+        : { x: 600 + scenePan.x, y: 360 + scenePan.y, z: 0 };
+
+      const projectedStates = new Map();
+      let minX = Infinity;
+      let minY = Infinity;
+      let maxX = -Infinity;
+      let maxY = -Infinity;
+
+      visibleStates.forEach(state => {
+        const base = node3DBase.get(state.id) || { x: state.x, y: state.y, z: state.layer * DEPTH_GAP_3D };
+        const corners = {
+          tl: projectPoint3D({ x: base.x, y: base.y, z: base.z }, center),
+          tr: projectPoint3D({ x: base.x + BOX_W, y: base.y, z: base.z }, center),
+          br: projectPoint3D({ x: base.x + BOX_W, y: base.y + BOX_H, z: base.z }, center),
+          bl: projectPoint3D({ x: base.x, y: base.y + BOX_H, z: base.z }, center)
+        };
+        const centerPoint = projectPoint3D({ x: base.x + BOX_W / 2, y: base.y + BOX_H / 2, z: base.z }, center);
+        const sphereRadius = Math.max(24, Math.min(52, SPHERE_RADIUS_3D * centerPoint.scale));
+        const sidePoints = {
+          left: { x: centerPoint.x - sphereRadius, y: centerPoint.y, depth: centerPoint.depth, scale: centerPoint.scale },
+          right: { x: centerPoint.x + sphereRadius, y: centerPoint.y, depth: centerPoint.depth, scale: centerPoint.scale },
+          top: { x: centerPoint.x, y: centerPoint.y - sphereRadius, depth: centerPoint.depth, scale: centerPoint.scale },
+          bottom: { x: centerPoint.x, y: centerPoint.y + sphereRadius, depth: centerPoint.depth, scale: centerPoint.scale }
+        };
+        const badgePoint = projectPoint3D({ x: base.x + BOX_W - 12, y: base.y + 18, z: base.z }, center);
+        const projected = { corners, center: centerPoint, sidePoints, badgePoint, sphereRadius };
+        projectedStates.set(state.id, projected);
+
+        [...Object.values(corners), badgePoint].forEach(point => {
+          minX = Math.min(minX, point.x);
+          minY = Math.min(minY, point.y);
+          maxX = Math.max(maxX, point.x);
+          maxY = Math.max(maxY, point.y);
+        });
+      });
+
+      const boundsWidth = Number.isFinite(maxX) && Number.isFinite(minX) ? (maxX - minX) : 0;
+      const boundsHeight = Number.isFinite(maxY) && Number.isFinite(minY) ? (maxY - minY) : 0;
+      const viewportWidth = Math.max(0, (viewport.clientWidth || 0) / Math.max(graphZoom, 0.01));
+      const viewportHeight = Math.max(0, (viewport.clientHeight || 0) / Math.max(graphZoom, 0.01));
+      const width = Number.isFinite(maxX) && Number.isFinite(minX)
+        ? Math.max(1400, Math.ceil(boundsWidth + 360), Math.ceil(viewportWidth + 120))
+        : Math.max(1400, Math.ceil(viewportWidth + 120));
+      const height = Number.isFinite(maxY) && Number.isFinite(minY)
+        ? Math.max(820, Math.ceil(boundsHeight + 300), Math.ceil(viewportHeight + 120))
+        : Math.max(820, Math.ceil(viewportHeight + 120));
+
+      const offsetX = width / 2 - center.x;
+      const offsetY = height / 2 - center.y;
+
+      const shift = point => ({ ...point, x: point.x + offsetX, y: point.y + offsetY });
+      projectedStates.forEach(projected => {
+        projected.center = shift(projected.center);
+        projected.badgePoint = shift(projected.badgePoint);
+        Object.keys(projected.corners).forEach(key => {
+          projected.corners[key] = shift(projected.corners[key]);
+        });
+        Object.keys(projected.sidePoints).forEach(key => {
+          projected.sidePoints[key] = shift(projected.sidePoints[key]);
+        });
+      });
+
+      return { projectedStates, width, height };
+    }
+
+    function quadPath(corners) {
+      return `M ${corners.tl.x} ${corners.tl.y} L ${corners.tr.x} ${corners.tr.y} L ${corners.br.x} ${corners.br.y} L ${corners.bl.x} ${corners.bl.y} Z`;
+    }
+
+    function insetQuad(corners, inset = 0.1) {
+      const cx = (corners.tl.x + corners.tr.x + corners.br.x + corners.bl.x) / 4;
+      const cy = (corners.tl.y + corners.tr.y + corners.br.y + corners.bl.y) / 4;
+      const moveIn = point => ({
+        x: point.x + (cx - point.x) * inset,
+        y: point.y + (cy - point.y) * inset
+      });
+      return {
+        tl: moveIn(corners.tl),
+        tr: moveIn(corners.tr),
+        br: moveIn(corners.br),
+        bl: moveIn(corners.bl)
+      };
+    }
+
+    function render3D(model) {
+      svg.innerHTML = '';
+      hideEdgeTooltip();
+      addDefs();
+      updateSceneOrientationWidget();
+
+      const visibleStates = [...model.statesMap.values()].filter(s => showUnused.checked || s.reachable);
+      const visibleSet = new Set(visibleStates.map(s => s.id));
+      const filteredEdges = model.edges.filter(e => visibleSet.has(e.from) && visibleSet.has(e.to));
+      const displayEdges = mergeEdges(filteredEdges).map(group => buildDisplayEdge(group, group.all));
+      const scene = build3DScene(model, visibleStates);
+
+      svg.setAttribute('viewBox', `0 0 ${scene.width} ${scene.height}`);
+      svg.setAttribute('width', scene.width);
+      svg.setAttribute('height', scene.height);
+      svg.setAttribute('font-family', SVG_FONT_STACK);
+      applyGraphZoom();
+
+      const sceneLayer = createSvg('g', { id: 'sceneLayer' });
+      const topLayer = createSvg('g', { id: 'topLayer' });
+      const labelPlan = buildLabelPlan(model, displayEdges);
+
+      const initial = model.initial;
+      const initialProjected = scene.projectedStates.get(initial.id);
+      if (initialProjected) {
+        const p = initialProjected.sidePoints.left;
+        createSvg('circle', { cx: p.x - 52, cy: p.y, r: 11, fill: '#111827' }, topLayer);
+        createSvg('path', {
+          d: `M ${p.x - 40} ${p.y} L ${p.x} ${p.y}`,
+          stroke: '#111827', 'stroke-width': 3, fill: 'none', 'marker-end': 'url(#arrow)'
+        }, topLayer);
+      }
+
+      const selfLoopIndex = new Map();
+      const sceneItems = [];
+
+      displayEdges.forEach(edge => {
+        const from = model.statesMap.get(edge.from);
+        const to = model.statesMap.get(edge.to);
+        if (!from || !to) return;
+        const fromDepth = scene.projectedStates.get(from.id)?.center.depth ?? 0;
+        const toDepth = scene.projectedStates.get(to.id)?.center.depth ?? 0;
+
+        if (from.id === to.id) {
+          if (!showSelfLoops.checked) return;
+          const idx = selfLoopIndex.get(from.id) || 0;
+          selfLoopIndex.set(from.id, idx + 1);
+          sceneItems.push({
+            kind: 'self-loop',
+            depth: fromDepth,
+            draw: () => drawSelfLoop3D(from, edge, idx, sceneLayer, topLayer, labelPlan, scene)
+          });
+        } else {
+          sceneItems.push({
+            kind: 'edge',
+            depth: (fromDepth + toDepth) / 2,
+            draw: () => drawEdge3D(from, to, edge, sceneLayer, topLayer, labelPlan, scene)
+          });
+        }
+      });
+
+      visibleStates.forEach(state => {
+        sceneItems.push({
+          kind: 'node',
+          depth: scene.projectedStates.get(state.id)?.center.depth ?? 0,
+          draw: () => drawNode3D(state, sceneLayer, scene)
+        });
+      });
+
+      sceneItems
+        .sort((a, b) => a.depth - b.depth || (a.kind === 'edge' ? -1 : 1))
+        .forEach(item => item.draw());
+
+      updateLegend(model, displayEdges);
+    }
+
+    function drawNode3D(state, layer, scene) {
+      const projected = scene.projectedStates.get(state.id);
+      if (!projected) return;
+      const g = createSvg('g', { class: 'node', 'data-id': state.id, style: 'cursor: pointer;' }, layer);
+      const { isFinal, isUnreachable, fill, stroke } = getNodePalette(state);
+      const sphereRadius = projected.sphereRadius || Math.max(
+        24,
+        Math.min(
+          52,
+          Math.min(
+            Math.abs(projected.sidePoints.right.x - projected.center.x),
+            Math.abs(projected.sidePoints.bottom.y - projected.center.y)
+          )
+        )
+      );
+      const shellStrokeWidth = Math.max(1.6, 2.8 * projected.center.scale);
+      const light = getSceneLightProjection();
+      const highlightX = projected.center.x + light.lx * sphereRadius * 0.36;
+      const highlightY = projected.center.y + light.ly * sphereRadius * 0.36;
+      const titleFontSize = Math.max(11, 18 * projected.center.scale);
+      const namePreferredSize = Math.max(9, 15 * projected.center.scale);
+      const textMaxWidth = Math.max(42, sphereRadius * 1.58);
+      const nameFontSize = fitTextFontSize(state.name, textMaxWidth, namePreferredSize, 7);
+
+      createSvg('circle', {
+        class: 'node-shell',
+        cx: projected.center.x,
+        cy: projected.center.y,
+        r: sphereRadius,
+        fill: 'none',
+        stroke,
+        'stroke-width': shellStrokeWidth,
+        filter: 'url(#shadow)',
+        'stroke-dasharray': isUnreachable ? '8 6' : 'none'
+      }, g);
+      applyNodeVisualState(g, state, { isFinal, isUnreachable, fill, stroke, innerStroke: isUnreachable ? '#9ca3af' : stroke });
+
+      createSvg('ellipse', {
+        cx: highlightX,
+        cy: highlightY,
+        rx: sphereRadius * 0.34,
+        ry: sphereRadius * 0.22,
+        fill: shiftHexColor(fill, 12),
+        opacity: '0.32',
+        stroke: 'none',
+        'pointer-events': 'none'
+      }, g);
+
+      if (isFinal) {
+        createSvg('circle', {
+          class: 'node-inner-ring',
+          cx: projected.center.x,
+          cy: projected.center.y,
+          r: Math.max(16, sphereRadius - Math.max(5, sphereRadius * 0.16)),
+          fill: 'none',
+          stroke: isUnreachable ? '#9ca3af' : stroke,
+          'stroke-width': Math.max(1.1, 1.8 * projected.center.scale),
+          'stroke-dasharray': isUnreachable ? '8 6' : 'none'
+        }, g);
+      }
+
+      const titleY = projected.center.y - 5 * projected.center.scale;
+      const nameY = projected.center.y + 14 * projected.center.scale;
+      const top = createSvg('text', {
+        x: projected.center.x,
+        y: titleY,
+        'text-anchor': 'middle',
+        'font-size': titleFontSize,
+        'font-weight': 800,
+        fill: isUnreachable ? '#4b5563' : '#111827',
+        'font-family': SVG_FONT_STACK
+      }, g);
+      top.textContent = state.id;
+
+      const name = createSvg('text', {
+        x: projected.center.x,
+        y: nameY,
+        'text-anchor': 'middle',
+        'font-size': nameFontSize,
+        fill: isUnreachable ? '#6b7280' : '#222',
+        'pointer-events': 'none',
+        'font-family': SVG_FONT_STACK
+      }, g);
+      name.textContent = state.name;
+
+      g.setAttribute('data-badge-x', String(projected.center.x + sphereRadius - 6));
+      g.setAttribute('data-badge-y', String(projected.center.y - sphereRadius + 12));
+    }
+
+    function drawEdge3D(from, to, edge, edgeLayer, labelLayer, labelPlan, scene) {
+      const [sa, ta] = chooseAnchors(from, to);
+      const fromProjected = scene.projectedStates.get(from.id);
+      const toProjected = scene.projectedStates.get(to.id);
+      if (!fromProjected || !toProjected) return;
+      const p1 = fromProjected.sidePoints[sa];
+      const p2 = toProjected.sidePoints[ta];
+      const dx = p2.x - p1.x;
+      const dy = p2.y - p1.y;
+      const bend = Math.max(36, Math.min(110, Math.abs(dx) * 0.35 + Math.abs(dy) * 0.12));
+
+      let c1, c2;
+      if (sa === 'right' || sa === 'left') {
+        c1 = { x: p1.x + (sa === 'right' ? bend : -bend), y: p1.y };
+        c2 = { x: p2.x + (ta === 'left' ? -bend : bend), y: p2.y };
+      } else {
+        c1 = { x: p1.x, y: p1.y + (sa === 'bottom' ? bend : -bend) };
+        c2 = { x: p2.x, y: p2.y + (ta === 'top' ? -bend : bend) };
+      }
+
+      const d = `M ${p1.x} ${p1.y} C ${c1.x} ${c1.y}, ${c2.x} ${c2.y}, ${p2.x} ${p2.y}`;
+      drawDirectionalEdge(d, '#394150', 2.1, edgeLayer, false, from.id, edge.domKey);
+
+      const lx = (p1.x + p2.x + c1.x + c2.x) / 4;
+      const ly = (p1.y + p2.y + c1.y + c2.y) / 4 - 8;
+      const biasY = Math.abs(dy) > Math.abs(dx) ? (dy >= 0 ? 16 : -16) : (dy >= 0 ? -10 : 10);
+      if (showTransactions.checked) {
+        const slot = getLabelSlot(labelPlan, from.id, sa);
+        drawLabel(edge, lx, ly + biasY, labelLayer, sa, p1, slot);
+      }
+    }
+
+    function drawSelfLoop3D(node, edge, index, edgeLayer, labelLayer, labelPlan, scene) {
+      const projected = scene.projectedStates.get(node.id);
+      if (!projected) return;
+      const radius = projected.sphereRadius || Math.max(24, Math.abs(projected.sidePoints.top.y - projected.center.y));
+      const center = projected.center;
+      const spread = 30 + index * 18;
+      const startAngle = -Math.PI * 0.72;
+      const endAngle = -Math.PI * 0.28;
+      const start = {
+        x: center.x + Math.cos(startAngle) * radius,
+        y: center.y + Math.sin(startAngle) * radius
+      };
+      const end = {
+        x: center.x + Math.cos(endAngle) * radius,
+        y: center.y + Math.sin(endAngle) * radius
+      };
+      const ctrlY = center.y - radius - Math.max(46, radius * 1.18) - spread;
+      const d = `M ${start.x} ${start.y} C ${start.x} ${ctrlY}, ${end.x} ${ctrlY}, ${end.x} ${end.y}`;
+      drawDirectionalEdge(d, '#6b7280', 2, edgeLayer, true, node.id, edge.domKey);
+      if (showTransactions.checked) {
+        const slot = getLabelSlot(labelPlan, node.id, 'top');
+        drawLabel(edge, center.x - radius * 0.78, ctrlY - 10, labelLayer, 'top', projected.sidePoints.top, slot);
+      }
     }
 
     function drawNode(s, layer) {
@@ -2890,8 +3511,14 @@
       const state = graph?.statesMap?.get(id);
       if (!state) return;
 
-      badge.setAttribute('x', state.x + BOX_W - 12);
-      badge.setAttribute('y', state.y + 18);
+      const badgeX = renderMode === '3d'
+        ? Number(nodeEl.getAttribute('data-badge-x')) || (state.x + BOX_W - 12)
+        : (state.x + BOX_W - 12);
+      const badgeY = renderMode === '3d'
+        ? Number(nodeEl.getAttribute('data-badge-y')) || (state.y + 18)
+        : (state.y + 18);
+      badge.setAttribute('x', badgeX);
+      badge.setAttribute('y', badgeY);
       badge.setAttribute('fill', isRoot ? '#15803d' : '#374151');
       badge.textContent = String(level);
     }
@@ -2919,6 +3546,90 @@
         dragMoved = true;
         rerenderPreservingPositions();
         updateNodeFocus(dragged.id);
+      });
+    }
+
+    function scheduleSceneRender() {
+      if (sceneFramePending) return;
+      sceneFramePending = true;
+      requestAnimationFrame(() => {
+        sceneFramePending = false;
+        rerenderGraph();
+      });
+    }
+
+    function bind3DViewportHandlers() {
+      if (viewport.dataset.sceneBound === 'true') return;
+      viewport.dataset.sceneBound = 'true';
+
+      viewport.addEventListener('pointerdown', event => {
+        if (!viewport.contains(event.target)) return;
+        setViewportWheelZoomActive(true);
+      });
+
+      viewport.addEventListener('contextmenu', event => {
+        if (renderMode !== '3d') return;
+        event.preventDefault();
+      });
+
+      viewport.addEventListener('pointerdown', event => {
+        if (renderMode !== '3d') return;
+        if (event.target?.closest?.('.node, .edge-label, .node-action, .edge-action')) return;
+        if (sceneAutoRotate) {
+          sceneAutoRotate = false;
+          stopSceneAutoRotate();
+        }
+        const mode = event.button === 2 ? 'pan' : 'rotate';
+        sceneDrag = {
+          mode,
+          x: event.clientX,
+          y: event.clientY,
+          startX: sceneRotation.x,
+          startY: sceneRotation.y,
+          startPanX: scenePan.x,
+          startPanY: scenePan.y
+        };
+        viewport.classList.add('rotating');
+        event.preventDefault();
+      });
+
+      viewport.addEventListener('pointermove', event => {
+        if (!sceneDrag || renderMode !== '3d') return;
+        const dx = event.clientX - sceneDrag.x;
+        const dy = event.clientY - sceneDrag.y;
+        if (sceneDrag.mode === 'pan') {
+          scenePan.x = sceneDrag.startPanX + dx;
+          scenePan.y = sceneDrag.startPanY + dy;
+        } else {
+          sceneRotation.y = sceneDrag.startY + dx * 0.008;
+          sceneRotation.x = Math.max(-1.2, Math.min(1.2, sceneDrag.startX + dy * 0.006));
+        }
+        scheduleSceneRender();
+      });
+
+      const stopSceneDrag = () => {
+        if (!sceneDrag) return;
+        sceneDrag = null;
+        viewport.classList.remove('rotating');
+      };
+
+      viewport.addEventListener('pointerup', stopSceneDrag);
+      viewport.addEventListener('pointerleave', stopSceneDrag);
+      viewport.addEventListener('wheel', event => {
+        if (!viewportWheelZoomActive) return;
+        event.preventDefault();
+        if (renderMode === '3d') {
+          const direction = event.deltaY > 0 ? 80 : -80;
+          setSceneCameraDistance(sceneCameraDistance + direction);
+          return;
+        }
+        const direction = event.deltaY > 0 ? -0.08 : 0.08;
+        setGraphZoom(graphZoom + direction);
+      }, { passive: false });
+
+      document.addEventListener('pointerdown', event => {
+        if (viewport.contains(event.target)) return;
+        setViewportWheelZoomActive(false);
       });
     }
 
@@ -2971,10 +3682,12 @@
 
     function attachDragHandlers() {
       bindSvgDragHandlers();
+      bind3DViewportHandlers();
       const nodes = svg.querySelectorAll('.node');
       const labels = svg.querySelectorAll('.edge-label');
       nodes.forEach(node => {
         node.addEventListener('pointerdown', e => {
+          if (renderMode === '3d') return;
           if (e.target?.closest?.('.node-action')) return;
           const id = node.getAttribute('data-id');
           const s = graph.statesMap.get(id);
@@ -3018,6 +3731,7 @@
 
       labels.forEach(label => {
         label.addEventListener('pointerdown', e => {
+          if (renderMode === '3d') return;
           if (e.target?.closest?.('.edge-action')) return;
           const key = label.getAttribute('data-edge-key');
           if (!key || !graph?.labelOffsets) return;
@@ -3082,10 +3796,21 @@
         showError(`Export PNG fallito: ${err.message || err}`);
       });
     });
+    sceneRotateBtn.addEventListener('click', toggleSceneAutoRotate);
+    renderModeBtn.addEventListener('click', toggleRenderMode);
     zoomOutBtn.addEventListener('click', () => setGraphZoom(graphZoom - 0.1));
     zoomInBtn.addEventListener('click', () => setGraphZoom(graphZoom + 0.1));
     resetLayoutBtn.addEventListener('click', () => {
       if (!graph) return;
+      if (renderMode === '3d') {
+        sceneRotation = { x: -0.45, y: -0.75 };
+        scenePan = { x: 0, y: 0 };
+        sceneCameraDistance = CAMERA_DISTANCE_3D;
+        sceneAutoRotate = false;
+        stopSceneAutoRotate();
+        rerenderGraph();
+        return;
+      }
       clearLayoutCache(graph.layoutCacheKey);
       graph.labelOffsets = new Map();
       applyAutoLayout(graph);
@@ -3436,5 +4161,6 @@
   </Transactions>
 </StateMachine>`;
 
+    updateRenderModeUI();
     bootstrapDefaultMachine();
     updateZoomLabel();

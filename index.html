@@ -167,6 +167,9 @@
             </button>
           </div>
           <div class="topbar-actions">
+          <button type="button" class="export-btn render-mode-btn" id="renderModeBtn" title="Passa a modalita 3D" aria-label="Passa a modalita 3D">
+            <span id="renderModeLabel">2D</span>
+          </button>
           <button type="button" class="export-btn edit-mode-btn" id="editModeBtn" title="Attiva/disattiva modalita modifica" aria-label="Attiva/disattiva modalita modifica">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M4 16.5V20h3.5L18.2 9.3l-3.5-3.5L4 16.5zm11.7-11.7l1.5-1.5a1.8 1.8 0 012.5 0l1.4 1.4a1.8 1.8 0 010 2.5l-1.5 1.5-3.9-3.9z" fill="currentColor"/>
@@ -191,9 +194,13 @@
         <svg id="svg" xmlns="http://www.w3.org/2000/svg"></svg>
         <div class="edge-tooltip" id="edgeTooltip"></div>
       </div>
+      <button type="button" class="scene-rotate-btn" id="sceneRotateBtn" aria-label="Ferma rotazione automatica" title="Ferma rotazione automatica">Stop rotazione</button>
       <div class="edit-toolbar" id="editToolbar">
         <button type="button" class="edit-action-btn" id="addStateBtn">Aggiungi Stato</button>
         <button type="button" class="edit-action-btn danger" id="rollbackBtn">Rollback</button>
+      </div>
+      <div class="scene-orientation" id="sceneOrientation" aria-hidden="true">
+        <svg id="sceneOrientationSvg" viewBox="0 0 120 120"></svg>
       </div>
       <div class="legend" id="legend"></div>
     </main>

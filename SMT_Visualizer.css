@@ -382,6 +382,18 @@
         #fbfcff;
     }
 
+    .viewport.mode-3d {
+      cursor: grab;
+    }
+
+    .viewport.mode-3d.rotating {
+      cursor: grabbing;
+    }
+
+    .viewport.wheel-zoom-active {
+      box-shadow: inset 0 0 0 2px rgba(47, 111, 218, 0.18);
+    }
+
     svg {
       display: block;
     }
@@ -402,6 +414,58 @@
       font-size: 13px;
       line-height: 1.45;
       z-index: 2;
+    }
+
+    .scene-rotate-btn {
+      position: absolute;
+      top: 86px;
+      right: 18px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      min-width: 132px;
+      height: 40px;
+      padding: 0 14px;
+      border: 1px solid #d7dfec;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.96);
+      box-shadow: var(--shadow);
+      color: #22304a;
+      font-size: 12px;
+      font-weight: 800;
+      z-index: 5;
+    }
+
+    .scene-rotate-btn.active {
+      display: inline-flex;
+    }
+
+    .scene-orientation {
+      position: absolute;
+      right: 18px;
+      bottom: 18px;
+      width: 128px;
+      height: 128px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid #d7dfec;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.94);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(8px);
+      z-index: 5;
+      pointer-events: none;
+    }
+
+    .scene-orientation.active {
+      display: flex;
+    }
+
+    .scene-orientation svg {
+      width: 112px;
+      height: 112px;
+      overflow: visible;
     }
 
     .legend.collapsed {
@@ -463,6 +527,22 @@
       min-height: 0;
     }
 
+    .render-mode-btn {
+      width: 52px;
+      min-width: 52px;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .render-mode-btn span {
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.03em;
+      line-height: 1;
+    }
+
     .new-machine-btn {
       color: #1d4ed8;
       background: rgba(238, 244, 255, 0.96);
@@ -473,6 +553,12 @@
       color: #7c2d12;
       background: rgba(255, 247, 237, 0.96);
       border-color: #fed7aa;
+    }
+
+    .render-mode-btn.active {
+      border-color: #99d4d6;
+      background: rgba(240, 253, 250, 0.96);
+      color: #0f766e;
     }
 
     .edit-mode-btn.active {
