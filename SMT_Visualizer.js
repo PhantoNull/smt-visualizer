@@ -88,7 +88,7 @@
     const LABEL_MAX_LINES = 2;
     const LABEL_STACK_GAP = 8;
     const LABEL_SOURCE_OFFSET = 18;
-    const CHEVRON_SPACING = 34;
+    const CHEVRON_SPACING = 68;
     const CHEVRON_SIZE = 7;
     const DEPTH_GAP_3D = 220;
     const NODE_SPREAD_3D = 180;
@@ -1499,6 +1499,12 @@
       }, defs);
       createSvg('path', { d: 'M0,0 L10,5 L0,10 z', fill: '#394150' }, marker);
 
+      const marker3d = createSvg('marker', {
+        id: 'arrow3d', markerWidth: 7, markerHeight: 7, refX: 5.8, refY: 3.5,
+        orient: 'auto', markerUnits: 'strokeWidth'
+      }, defs);
+      createSvg('path', { d: 'M0,0 L7,3.5 L0,7 z', fill: '#394150' }, marker3d);
+
       const miniMarker = createSvg('marker', {
         id: 'arrowMini', markerWidth: 7, markerHeight: 7, refX: 5.5, refY: 3.5,
         orient: 'auto', markerUnits: 'strokeWidth'
@@ -1754,10 +1760,10 @@
       const initialProjected = scene.projectedStates.get(initial.id);
       if (initialProjected) {
         const p = initialProjected.sidePoints.left;
-        createSvg('circle', { cx: p.x - 52, cy: p.y, r: 11, fill: '#111827' }, topLayer);
+        createSvg('circle', { cx: p.x - 42, cy: p.y, r: 8.5, fill: '#111827' }, topLayer);
         createSvg('path', {
-          d: `M ${p.x - 40} ${p.y} L ${p.x} ${p.y}`,
-          stroke: '#111827', 'stroke-width': 3, fill: 'none', 'marker-end': 'url(#arrow)'
+          d: `M ${p.x - 31} ${p.y} L ${p.x} ${p.y}`,
+          stroke: '#111827', 'stroke-width': 2.2, fill: 'none', 'marker-end': 'url(#arrow3d)'
         }, topLayer);
       }
 
@@ -1914,7 +1920,7 @@
       }
 
       const d = `M ${p1.x} ${p1.y} C ${c1.x} ${c1.y}, ${c2.x} ${c2.y}, ${p2.x} ${p2.y}`;
-      drawDirectionalEdge(d, '#394150', 2.1, edgeLayer, false, from.id, edge.domKey);
+      drawDirectionalEdge(d, '#394150', 1.7, edgeLayer, false, from.id, edge.domKey, 'arrow3d');
 
       const lx = (p1.x + p2.x + c1.x + c2.x) / 4;
       const ly = (p1.y + p2.y + c1.y + c2.y) / 4 - 8;
@@ -1943,7 +1949,7 @@
       };
       const ctrlY = center.y - radius - Math.max(46, radius * 1.18) - spread;
       const d = `M ${start.x} ${start.y} C ${start.x} ${ctrlY}, ${end.x} ${ctrlY}, ${end.x} ${end.y}`;
-      drawDirectionalEdge(d, '#6b7280', 2, edgeLayer, true, node.id, edge.domKey);
+      drawDirectionalEdge(d, '#6b7280', 1.7, edgeLayer, true, node.id, edge.domKey, 'arrow3d');
       if (showTransactions.checked) {
         const slot = getLabelSlot(labelPlan, node.id, 'top');
         drawLabel(edge, center.x - radius * 0.78, ctrlY - 10, labelLayer, 'top', projected.sidePoints.top, slot);
@@ -2144,7 +2150,7 @@
       }
     }
 
-    function drawDirectionalEdge(d, color, width, layer, isLoop = false, fromId = '', domKey = '') {
+    function drawDirectionalEdge(d, color, width, layer, isLoop = false, fromId = '', domKey = '', markerId = 'arrow') {
       const edgeGroup = createSvg('g', {
         class: 'edge-group',
         'data-edge-from': fromId
@@ -2152,7 +2158,7 @@
       edgeGroup.setAttribute('data-edge-key', domKey);
 
       createSvg('path', {
-        d, fill: 'none', stroke: color, 'stroke-width': width, 'marker-end': 'url(#arrow)'
+        d, fill: 'none', stroke: color, 'stroke-width': width, 'marker-end': `url(#${markerId})`
       }, edgeGroup).setAttribute('data-edge-role', 'main');
 
       drawEdgeChevrons(d, color, edgeGroup, isLoop);
