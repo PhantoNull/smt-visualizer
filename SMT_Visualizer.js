@@ -27,15 +27,22 @@
     const editWarning = document.getElementById('editWarning');
     const editToolbar = document.getElementById('editToolbar');
     const addStateBtn = document.getElementById('addStateBtn');
-    const rollbackBtn = document.getElementById('rollbackBtn');
+    const undoBtn = document.getElementById('undoBtn');
+    const redoBtn = document.getElementById('redoBtn');
     const showSelfLoops = document.getElementById('showSelfLoops');
     const showOutputs = document.getElementById('showOutputs');
     const showEventNames = document.getElementById('showEventNames');
     const showTransactions = document.getElementById('showTransactions');
     const showReachableCascade = document.getElementById('showReachableCascade');
     const showUnused = document.getElementById('showUnused');
-    const spacingRange = document.getElementById('spacingRange');
-    const spacingValue = document.getElementById('spacingValue');
+const spacingRange = document.getElementById('spacingRange');
+const spacingValue = document.getElementById('spacingValue');
+const settingsPanel = document.getElementById('settingsPanel');
+const settingsToggle = document.getElementById('settingsToggle');
+const semanticPanel = document.getElementById('semanticPanel');
+const semanticStatus = document.getElementById('semanticStatus');
+const semanticBody = document.getElementById('semanticBody');
+const semanticToggle = document.getElementById('semanticToggle');
     const brokerFileBtn = document.getElementById('brokerFileBtn');
     const brokerEditBtn = document.getElementById('brokerEditBtn');
     const brokerSaveBtn = document.getElementById('brokerSaveBtn');
@@ -109,13 +116,18 @@
     let graphZoom = 1;
     let renderMode = '2d';
     let viewportWheelZoomActive = false;
-    let legendCollapsed = false;
+let legendCollapsed = false;
+let settingsCollapsed = false;
+let semanticCollapsed = false;
     let autoRenderTimer = null;
     let editMode = false;
     let machineHeaderSyncing = false;
     let brokerFileHandle = null;
     let kernelFileHandle = null;
-    let editHistory = [];
+    let brokerSourceLabel = '';
+    let kernelSourceLabel = '';
+    let editUndoHistory = [];
+    let editRedoHistory = [];
     let lastParsedBroker = null;
     let lastParsedKernel = null;
     let pendingTransitionStartId = null;
@@ -131,8 +143,8 @@
     let editDialogOffset = { x: 0, y: 0 };
     let editDialogDrag = null;
     const xmlWindowState = {
-      broker: { element: null, editor: null, gutter: null, status: null, offset: { x: 0, y: 0 }, drag: null, diagnostic: null, validateTimer: null },
-      kernel: { element: null, editor: null, gutter: null, status: null, offset: { x: 0, y: 0 }, drag: null, diagnostic: null, validateTimer: null }
+      broker: { element: null, editor: null, gutter: null, status: null, offset: { x: 0, y: 0 }, drag: null, diagnostic: null, validateTimer: null, draftText: '' },
+      kernel: { element: null, editor: null, gutter: null, status: null, offset: { x: 0, y: 0 }, drag: null, diagnostic: null, validateTimer: null, draftText: '' }
     };
 
     xmlWindowState.broker.element = brokerWindow;
@@ -208,6 +220,13 @@
       errorBox.style.display = 'block';
     }
 
+    function updateSemanticValidationPlaceholder(message, status = 'in attesa', statusClass = '') {
+      if (!semanticStatus || !semanticBody) return;
+      semanticStatus.textContent = status;
+      semanticStatus.className = `semantic-status${statusClass ? ` ${statusClass}` : ''}`;
+      semanticBody.textContent = message;
+    }
+
     function updateZoomLabel() {
       if (zoomValue) zoomValue.textContent = `${Math.round(graphZoom * 100)}%`;
     }
@@ -249,6 +268,13 @@
     function setGraphZoom(nextZoom) {
       graphZoom = Math.max(0.4, Math.min(2.2, nextZoom));
       applyGraphZoom();
+    }
+
+    function cancelAutoRender() {
+      if (autoRenderTimer) {
+        clearTimeout(autoRenderTimer);
+        autoRenderTimer = null;
+      }
     }
 
     function setSceneCameraDistance(nextDistance) {
@@ -318,33 +344,43 @@
         : { source: kernelInput, editor: kernelEditor, window: kernelWindow };
     }
 
+    function setXmlSourceLabel(kind, label = '') {
+      if (kind === 'broker') brokerSourceLabel = label;
+      else kernelSourceLabel = label;
+    }
+
     function updateXmlSourceStatus(kind, value) {
       const compact = String(value || '').trim();
       const lines = compact ? compact.split(/\r?\n/).length : 0;
       const chars = compact.length;
       const status = kind === 'broker' ? brokerStatus : kernelStatus;
+      const sourceLabel = kind === 'broker' ? brokerSourceLabel : kernelSourceLabel;
       if (status) {
-        status.textContent = compact
-          ? `${lines} righe caricate - ${chars.toLocaleString('it-IT')} caratteri`
+        status.innerHTML = compact
+          ? `${lines} righe caricate - ${chars.toLocaleString('it-IT')} caratteri${sourceLabel ? `<br>${escapeHtml(sourceLabel)}` : ''}`
           : 'Nessun contenuto caricato.';
       }
     }
 
     function setXmlText(kind, value, from = 'both') {
       const pair = getXmlPair(kind);
+      const state = getXmlEditorState(kind);
       if (from === 'both' || from === 'source') pair.source.value = value;
       if (from === 'both' || from === 'editor') pair.editor.value = value;
+      state.draftText = pair.editor.value || value || '';
       updateXmlSourceStatus(kind, value);
       renderXmlEditor(kind);
     }
 
     function openXmlWindow(kind) {
       const pair = getXmlPair(kind);
+      const state = getXmlEditorState(kind);
       const sourceValue = pair.source.value;
       const editorValue = pair.editor.value;
       const nextValue = sourceValue || editorValue || '';
       pair.source.value = nextValue;
       pair.editor.value = nextValue;
+      state.draftText = nextValue;
       normalizeXmlEditor(kind);
       pair.window.classList.add('open');
       pair.window.style.transform = `translate(${xmlWindowState[kind].offset.x}px, ${xmlWindowState[kind].offset.y}px)`;
@@ -474,28 +510,29 @@
 
     function normalizeXmlEditor(kind) {
       const state = getXmlEditorState(kind);
-      const sourceText = getXmlPair(kind).source.value || state.editor.value || '';
+      const sourceText = state.draftText || state.editor.value || getXmlPair(kind).source.value || '';
       const formatted = formatXmlText(sourceText, kind);
       if (formatted && formatted !== sourceText) {
         state.editor.value = formatted;
+        state.draftText = formatted;
         setXmlText(kind, formatted, 'source');
       }
       autoSizeXmlWindow(kind);
       renderXmlEditor(kind);
     }
 
-    function scheduleXmlValidation(kind) {
-      const state = getXmlEditorState(kind);
-      if (state.validateTimer) {
+function scheduleXmlValidation(kind) {
+  const state = getXmlEditorState(kind);
+  if (state.validateTimer) {
         clearTimeout(state.validateTimer);
         state.validateTimer = null;
-      }
-      state.validateTimer = setTimeout(() => {
-        state.validateTimer = null;
-        renderXmlEditor(kind, { forceValidate: true });
-        showXmlToast(state.diagnostic);
-      }, 1000);
-    }
+  }
+  state.validateTimer = setTimeout(() => {
+    state.validateTimer = null;
+    refreshXmlEditorDiagnostics(kind);
+    showXmlToast(state.diagnostic);
+  }, 1000);
+}
 
     function syncXmlGutterScroll(kind) {
       const state = getXmlEditorState(kind);
@@ -503,9 +540,9 @@
       if (track) track.style.transform = `translateY(-${state.editor.scrollTop}px)`;
     }
 
-    function renderXmlGutter(kind, text, diagnostic) {
-      const state = getXmlEditorState(kind);
-      const totalLines = Math.max(1, String(text || '').split(/\r?\n/).length);
+function renderXmlGutter(kind, text, diagnostic) {
+  const state = getXmlEditorState(kind);
+  const totalLines = Math.max(1, String(text || '').split(/\r?\n/).length);
       const rows = [];
       for (let line = 1; line <= totalLines; line++) {
         rows.push(`
@@ -516,26 +553,43 @@
         `);
       }
 
-      state.gutter.innerHTML = `<div class="xml-gutter-track">${rows.join('')}</div>`;
-      syncXmlGutterScroll(kind);
-    }
+  state.gutter.innerHTML = `<div class="xml-gutter-track">${rows.join('')}</div>`;
+  syncXmlGutterScroll(kind);
+}
 
-    function renderXmlEditor(kind, options = {}) {
+function updateXmlEditorPresentation(kind, text, diagnostic) {
+  const state = getXmlEditorState(kind);
+  state.diagnostic = diagnostic;
+  renderXmlGutter(kind, text, diagnostic);
+  state.editor.readOnly = false;
+  state.status.textContent = diagnostic.valid
+    ? `XML valido - ${Math.max(1, text.split(/\r?\n/).length)} righe`
+    : `XML non valido${diagnostic.line ? ` - linea ${diagnostic.line}` : ''}${diagnostic.column ? `, colonna ${diagnostic.column}` : ''}: ${diagnostic.message}`;
+  state.status.title = '';
+  state.status.classList.toggle('valid', diagnostic.valid);
+  state.status.classList.toggle('invalid', !diagnostic.valid);
+  state.editor.classList.toggle('xml-invalid', !diagnostic.valid);
+}
+
+function renderXmlEditor(kind) {
+  const state = getXmlEditorState(kind);
+  const text = state.draftText || state.editor.value || getXmlPair(kind).source.value || '';
+  const diagnostic = extractXmlDiagnostic(text);
+  updateXmlEditorPresentation(kind, text, diagnostic);
+}
+
+function refreshXmlEditorDiagnostics(kind) {
+  const state = getXmlEditorState(kind);
+  const text = state.editor.value;
+  state.draftText = text;
+  const diagnostic = extractXmlDiagnostic(text);
+  updateXmlEditorPresentation(kind, text, diagnostic);
+}
+
+    function isXmlEditorContentValid(kind) {
       const state = getXmlEditorState(kind);
-      const text = getXmlPair(kind).source.value || state.editor.value || '';
-      const diagnostic = options.forceValidate || state.diagnostic
-        ? extractXmlDiagnostic(text)
-        : extractXmlDiagnostic(text);
-      state.diagnostic = diagnostic;
-      renderXmlGutter(kind, text, diagnostic);
-      state.editor.readOnly = false;
-
-      state.status.textContent = diagnostic.valid
-        ? `XML valido - ${Math.max(1, text.split(/\r?\n/).length)} righe`
-        : `XML non valido${diagnostic.line ? ` - linea ${diagnostic.line}` : ''}${diagnostic.column ? `, colonna ${diagnostic.column}` : ''}: ${diagnostic.message}`;
-      state.status.classList.toggle('valid', diagnostic.valid);
-      state.status.classList.toggle('invalid', !diagnostic.valid);
-      state.editor.classList.toggle('error', !diagnostic.valid);
+      const text = state.draftText || state.editor.value || getXmlPair(kind).source.value || '';
+      return extractXmlDiagnostic(text).valid;
     }
 
     let xmlToastTimer = null;
@@ -738,8 +792,9 @@
 
       const machineId = model.kernel.id || model.broker.id || 'FSM';
       const machineName = model.kernel.name || model.broker.name || '';
+      const initialLabel = model.initial?.id || 'n/d';
       machineTitle.textContent = `${machineId} - ${machineName}`;
-      machineMeta.textContent = `Versione kernel: ${model.kernel.version || 'n/d'} - Stato iniziale: ${model.initial.id} - Vista ${renderMode.toUpperCase()}${renderMode === '3d' ? ' con rotazione mouse' : ' con drag&drop attivo'}`;
+      machineMeta.textContent = `Versione kernel: ${model.kernel.version || 'n/d'} - Stato iniziale: ${initialLabel} - Vista ${renderMode.toUpperCase()}${renderMode === '3d' ? ' con rotazione mouse' : ' con drag&drop attivo'}`;
 
       machineHeaderSyncing = true;
       machineIdInput.value = machineId;
@@ -814,6 +869,37 @@
       }
     }
 
+    async function restoreHistorySnapshot(snapshot, targetStack, persistErrorLabel) {
+      if (!snapshot) return;
+      const current = snapshotCurrentXml();
+      const last = targetStack[targetStack.length - 1];
+      if (!last || last.brokerText !== current.brokerText || last.kernelText !== current.kernelText) {
+        targetStack.push(current);
+        if (targetStack.length > 20) targetStack.splice(0, targetStack.length - 20);
+      }
+      setXmlText('broker', snapshot.brokerText);
+      setXmlText('kernel', snapshot.kernelText);
+      try {
+        await persistXmlToFiles();
+      } catch (err) {
+        showError(`${persistErrorLabel}: ${err.message || err}`);
+      }
+      renderAll();
+      updateEditModeUI();
+    }
+
+    async function performUndo() {
+      const snapshot = editUndoHistory.pop();
+      updateEditModeUI();
+      await restoreHistorySnapshot(snapshot, editRedoHistory, 'Undo salvato solo in pagina');
+    }
+
+    async function performRedo() {
+      const snapshot = editRedoHistory.pop();
+      updateEditModeUI();
+      await restoreHistorySnapshot(snapshot, editUndoHistory, 'Redo salvato solo in pagina');
+    }
+
     function openNewMachineDialog() {
       openEditPanel(
         'Nuova state machine',
@@ -854,6 +940,8 @@
         const seed = buildNewStateMachineXml(nextId, nextName);
         brokerFileHandle = null;
         kernelFileHandle = null;
+        setXmlSourceLabel('broker', 'Origine: generato nella pagina');
+        setXmlSourceLabel('kernel', 'Origine: generato nella pagina');
         setXmlText('broker', seed.brokerText);
         setXmlText('kernel', seed.kernelText);
         renderAll();
@@ -892,9 +980,8 @@
       canvasWrap.classList.toggle('edit-active', editMode);
       machineHeaderEditor.classList.toggle('active', !!(editMode && graph));
       machineTitle.style.display = editMode && graph ? 'none' : '';
-      rollbackBtn.disabled = editHistory.length === 0;
-      rollbackBtn.style.opacity = editHistory.length === 0 ? '0.5' : '1';
-      rollbackBtn.style.cursor = editHistory.length === 0 ? 'not-allowed' : 'pointer';
+      undoBtn.disabled = editUndoHistory.length === 0;
+      redoBtn.disabled = editRedoHistory.length === 0;
     }
 
     function cancelPendingTransition() {
@@ -914,8 +1001,26 @@
       if (!editMode || !pendingTransitionStartId || !graph || !pendingTransitionPointer) return;
       const from = graph.statesMap.get(pendingTransitionStartId);
       if (!from) return;
-      const startSide = chooseAnchorForPoint(from, pendingTransitionPointer);
-      const start = sidePoint(from, startSide);
+      let startSide = chooseAnchorForPoint(from, pendingTransitionPointer);
+      let start = sidePoint(from, startSide);
+      if (renderMode === '3d') {
+        const shell = svg.querySelector(`.node[data-id="${CSS.escape(from.id)}"] .node-shell`);
+        if (shell?.tagName?.toLowerCase() === 'circle') {
+          const cx = Number(shell.getAttribute('cx'));
+          const cy = Number(shell.getAttribute('cy'));
+          const r = Number(shell.getAttribute('r'));
+          const vx = pendingTransitionPointer.x - cx;
+          const vy = pendingTransitionPointer.y - cy;
+          const len = Math.hypot(vx, vy) || 1;
+          start = {
+            x: cx + (vx / len) * r,
+            y: cy + (vy / len) * r
+          };
+          startSide = Math.abs(vx) >= Math.abs(vy)
+            ? (vx >= 0 ? 'right' : 'left')
+            : (vy >= 0 ? 'bottom' : 'top');
+        }
+      }
       const end = pendingTransitionPointer;
       const dx = end.x - start.x;
       const dy = end.y - start.y;
@@ -997,12 +1102,13 @@
       };
     }
 
-    function pushEditHistory() {
+    function pushUndoSnapshot() {
       const snapshot = snapshotCurrentXml();
-      const previous = editHistory[editHistory.length - 1];
+      const previous = editUndoHistory[editUndoHistory.length - 1];
       if (previous && previous.brokerText === snapshot.brokerText && previous.kernelText === snapshot.kernelText) return;
-      editHistory.push(snapshot);
-      if (editHistory.length > 20) editHistory = editHistory.slice(-20);
+      editUndoHistory.push(snapshot);
+      if (editUndoHistory.length > 20) editUndoHistory = editUndoHistory.slice(-20);
+      editRedoHistory = [];
       updateEditModeUI();
     }
 
@@ -1170,7 +1276,7 @@
       const kernel = cloneKernel(parseKernel(xmlFromString(kernelText)));
       const previousNodePositions = graph ? [...graph.statesMap.values()].map(state => ({ id: state.id, x: state.x, y: state.y })) : [];
 
-      pushEditHistory();
+      pushUndoSnapshot();
       await mutator(broker, kernel);
 
       setXmlText('broker', serializeBroker(broker));
@@ -1300,8 +1406,8 @@
         });
       });
 
-      const initial = [...statesMap.values()].find(s => s.initial) || [...statesMap.values()][0];
-      if (!initial) throw new Error('Nessuno stato trovato');
+      const initial = [...statesMap.values()].find(s => s.initial) || null;
+      if (statesMap.size === 0) throw new Error('Nessuno stato trovato');
 
       const edges = kernel.transitions.map(t => ({
         ...t,
@@ -1318,26 +1424,153 @@
         incoming.get(e.to).push(e);
       }
 
-      const q = [initial.id];
-      const dist = new Map([[initial.id, 0]]);
-      statesMap.get(initial.id).reachable = true;
-      while (q.length) {
-        const cur = q.shift();
-        for (const e of outgoing.get(cur) || []) {
-          const next = e.to;
-          statesMap.get(next) && (statesMap.get(next).reachable = true);
-          if (e.from !== e.to && !dist.has(next)) {
-            dist.set(next, dist.get(cur) + 1);
-            q.push(next);
+      const dist = new Map();
+      if (initial) {
+        const q = [initial.id];
+        dist.set(initial.id, 0);
+        statesMap.get(initial.id).reachable = true;
+        while (q.length) {
+          const cur = q.shift();
+          for (const e of outgoing.get(cur) || []) {
+            const next = e.to;
+            statesMap.get(next) && (statesMap.get(next).reachable = true);
+            if (e.from !== e.to && !dist.has(next)) {
+              dist.set(next, dist.get(cur) + 1);
+              q.push(next);
+            }
           }
         }
       }
 
+      const fallbackLayerBase = dist.size ? Math.max(...dist.values()) + 1 : 0;
+      let fallbackIndex = 0;
       for (const s of statesMap.values()) {
-        s.layer = dist.has(s.id) ? dist.get(s.id) : Math.max(1, ...dist.values()) + 1;
+        if (dist.has(s.id)) {
+          s.layer = dist.get(s.id);
+        } else {
+          s.layer = fallbackLayerBase + fallbackIndex;
+          fallbackIndex += 1;
+        }
       }
 
       return { broker, kernel, statesMap, edges, eventMap, outputMap, outgoing, incoming, initial, labelOffsets: new Map() };
+    }
+
+    function countDuplicates(values = []) {
+      const counts = new Map();
+      values.filter(Boolean).forEach(value => counts.set(value, (counts.get(value) || 0) + 1));
+      return [...counts.entries()].filter(([, count]) => count > 1).map(([value, count]) => ({ value, count }));
+    }
+
+    function validateSemanticModel(broker, kernel, model) {
+      const issues = [];
+      const pushIssue = (severity, message) => issues.push({ severity, message });
+
+      const brokerStateIds = new Set(broker.states.map(state => state.id).filter(Boolean));
+      const kernelStateIds = new Set(kernel.states.map(state => state.id).filter(Boolean));
+      const brokerEventIds = new Set(broker.inputEvents.map(event => event.id).filter(Boolean));
+      const brokerOutputIds = new Set(broker.outputs.map(output => output.id).filter(Boolean));
+      const kernelInitials = kernel.states.filter(state => state.initial);
+      const brokerInitials = broker.states.filter(state => state.initial);
+
+      countDuplicates(broker.states.map(state => state.id)).forEach(item => {
+        pushIssue('error', `Broker XML contiene lo stato ${item.value} ${item.count} volte.`);
+      });
+      countDuplicates(kernel.states.map(state => state.id)).forEach(item => {
+        pushIssue('error', `Kernel XML contiene lo stato ${item.value} ${item.count} volte.`);
+      });
+      countDuplicates(kernel.transitions.map(transition => transition.id)).forEach(item => {
+        pushIssue('error', `Kernel XML contiene la transizione ${item.value} ${item.count} volte.`);
+      });
+      countDuplicates(broker.outputs.map(output => output.id)).forEach(item => {
+        pushIssue('warn', `Broker XML contiene l'output ${item.value} ${item.count} volte.`);
+      });
+      countDuplicates(broker.inputEvents.map(event => event.id)).forEach(item => {
+        pushIssue('info', `Broker XML contiene l'evento ${item.value} con ${item.count} definizioni.`);
+      });
+
+      if (broker.id && kernel.id && broker.id !== kernel.id) {
+        pushIssue('warn', `Broker ID (${broker.id}) e Kernel ID (${kernel.id}) non coincidono.`);
+      }
+      if (broker.fsmId && kernel.id && broker.fsmId !== kernel.id) {
+        pushIssue('warn', `Broker fsmId (${broker.fsmId}) e Kernel ID (${kernel.id}) non coincidono.`);
+      }
+
+      if (kernelInitials.length === 0) pushIssue('error', 'Kernel XML non definisce alcuno stato iniziale.');
+      if (kernelInitials.length > 1) pushIssue('error', `Kernel XML definisce ${kernelInitials.length} stati iniziali.`);
+      if (brokerInitials.length === 0) pushIssue('warn', 'Broker XML non definisce alcuno stato iniziale.');
+      if (brokerInitials.length > 1) pushIssue('warn', `Broker XML definisce ${brokerInitials.length} stati iniziali.`);
+
+      kernel.transitions.forEach(transition => {
+        if (!kernelStateIds.has(transition.from)) {
+          pushIssue('error', `La transizione ${transition.id || '(senza ID)'} usa CurrentState ${transition.from} non presente nel Kernel XML.`);
+        }
+        if (!kernelStateIds.has(transition.to)) {
+          pushIssue('error', `La transizione ${transition.id || '(senza ID)'} usa NextState ${transition.to} non presente nel Kernel XML.`);
+        }
+        if (!brokerEventIds.has(transition.eventId)) {
+          pushIssue('error', `La transizione ${transition.id || '(senza ID)'} usa InputEvent ${transition.eventId} non presente nel Broker XML.`);
+        }
+        if (transition.outputId && !brokerOutputIds.has(transition.outputId)) {
+          pushIssue('error', `La transizione ${transition.id || '(senza ID)'} usa OutputFunction ${transition.outputId} non presente nel Broker XML.`);
+        }
+      });
+
+      broker.states.forEach(state => {
+        if (!kernelStateIds.has(state.id)) pushIssue('info', `Lo stato ${state.id} esiste nel Broker XML ma non nel Kernel XML.`);
+      });
+      kernel.states.forEach(state => {
+        if (!brokerStateIds.has(state.id)) pushIssue('warn', `Lo stato ${state.id} esiste nel Kernel XML ma non nel Broker XML.`);
+      });
+
+      kernel.states.forEach(state => {
+        const outgoingCount = model.outgoing.get(state.id)?.length || 0;
+        if (state.final && outgoingCount > 0) {
+          pushIssue('error', `Lo stato finale ${state.id} ha ${outgoingCount} transizioni uscenti.`);
+        }
+      });
+
+      [...model.statesMap.values()]
+        .filter(state => !state.reachable)
+        .forEach(state => pushIssue('warn', `Lo stato ${state.id} non è raggiungibile dallo stato iniziale.`));
+
+      if (issues.length === 0) {
+        issues.push({ severity: 'ok', message: 'Nessuna anomalia semantica rilevata.' });
+      }
+      return issues;
+    }
+
+    function renderSemanticValidation(broker, kernel, model) {
+      if (!semanticStatus || !semanticBody) return;
+      const issues = validateSemanticModel(broker, kernel, model);
+      const errors = issues.filter(issue => issue.severity === 'error');
+      const warnings = issues.filter(issue => issue.severity === 'warn');
+      const infos = issues.filter(issue => issue.severity === 'info');
+      const oks = issues.filter(issue => issue.severity === 'ok');
+      const statusClass = errors.length ? 'error' : warnings.length ? 'warn' : 'ok';
+      semanticStatus.className = `semantic-status ${statusClass}`;
+      semanticStatus.textContent = errors.length
+        ? `${errors.length} errori`
+        : warnings.length
+          ? `${warnings.length} warning`
+          : 'ok';
+
+      const sections = [];
+      const renderGroup = (title, items, cssClass) => {
+        if (!items.length) return;
+        sections.push(`
+          <div class="semantic-group">
+            <div class="semantic-group-title">${title}</div>
+            ${items.map(item => `<div class="semantic-item ${cssClass}">${escapeHtml(item.message)}</div>`).join('')}
+          </div>
+        `);
+      };
+
+      renderGroup('Errori', errors, 'error');
+      renderGroup('Warning', warnings, 'warn');
+      renderGroup('Info', infos, 'info');
+      renderGroup('Esito', oks, 'info');
+      semanticBody.innerHTML = sections.join('') || 'Nessuna informazione disponibile.';
     }
 
     function groupByLayer(model) {
@@ -1547,7 +1780,7 @@
       const labelPlan = buildLabelPlan(model, displayEdges);
 
       const initial = model.initial;
-      if (visibleSet.has(initial.id)) {
+      if (initial && visibleSet.has(initial.id)) {
         const p = sidePoint(initial, 'left');
         createSvg('circle', { cx: p.x - 52, cy: p.y, r: 11, fill: '#111827' }, topLayer);
         createSvg('path', {
@@ -1757,7 +1990,7 @@
       const labelPlan = buildLabelPlan(model, displayEdges);
 
       const initial = model.initial;
-      const initialProjected = scene.projectedStates.get(initial.id);
+      const initialProjected = initial ? scene.projectedStates.get(initial.id) : null;
       if (initialProjected) {
         const p = initialProjected.sidePoints.left;
         createSvg('circle', { cx: p.x - 42, cy: p.y, r: 8.5, fill: '#111827' }, topLayer);
@@ -1897,6 +2130,10 @@
 
       g.setAttribute('data-badge-x', String(projected.center.x + sphereRadius - 6));
       g.setAttribute('data-badge-y', String(projected.center.y - sphereRadius + 12));
+
+      if (editMode) {
+        drawNodeEditActions3D(g, state, projected);
+      }
     }
 
     function drawEdge3D(from, to, edge, edgeLayer, labelLayer, labelPlan, scene) {
@@ -2065,22 +2302,93 @@
         }, button);
         text.textContent = 'M';
       }, 'square', topActionY);
-      makeButton(deleteX, '#fff1f0', '#f2b8b5', '#b42318', 'Cancella stato', () => deleteStateById(state.id), (button, x, cy) => {
-        const text = createSvg('text', {
-          x,
-          y: cy + 3.2,
+    makeButton(deleteX, '#fff1f0', '#f2b8b5', '#b42318', 'Cancella stato', () => deleteStateById(state.id), (button, x, cy) => {
+      const text = createSvg('text', {
+        x,
+        y: cy + 3.2,
           'text-anchor': 'middle',
           'font-size': 10,
           'font-weight': 800,
           fill: '#b42318',
           'font-family': SVG_FONT_STACK,
           'pointer-events': 'none'
-        }, button);
-        text.textContent = 'X';
-      }, 'square', topActionY);
-    }
+      }, button);
+      text.textContent = 'X';
+    }, 'square', topActionY);
+  }
 
-    function buildLabelPlan(model, displayEdges) {
+  function drawNodeEditActions3D(group, state, projected) {
+    const actions = createSvg('g', { class: 'node-action', 'pointer-events': 'all' }, group);
+    const radius = projected.sphereRadius || Math.max(24, Math.abs(projected.sidePoints.top.y - projected.center.y));
+    const topActionY = projected.center.y - radius;
+    const editX = projected.center.x + radius - 26;
+    const deleteX = projected.center.x + radius;
+    const createX = projected.center.x + radius;
+    const createY = projected.center.y;
+
+    const makeButton = (x, fill, stroke, textColor, helper, onClick, iconRenderer, shape = 'square', y = topActionY) => {
+      const g = createSvg('g', { style: 'cursor: pointer;' }, actions);
+      g.style.color = textColor;
+      if (shape === 'circle') {
+        createSvg('circle', { cx: x, cy: y, r: 11, fill, stroke, 'stroke-width': 2.1 }, g);
+      } else {
+        createSvg('rect', {
+          x: x - 11, y: y - 11, width: 22, height: 22, rx: 7, ry: 7,
+          fill, stroke, 'stroke-width': 1.8
+        }, g);
+      }
+      createSvg('title', {}, g).textContent = helper;
+      iconRenderer(g, x, y);
+      g.addEventListener('click', event => {
+        event.stopPropagation();
+        onClick();
+      });
+      g.addEventListener('pointerdown', event => {
+        event.stopPropagation();
+      });
+    };
+
+    if (!state.final) {
+      makeButton(createX, '#ffffff', '#6b7280', '#6b7280', 'Crea Transazione', () => startPendingTransition(state.id), (button, x, cy) => {
+        createSvg('line', {
+          x1: x - 4.5, y1: cy, x2: x + 4.5, y2: cy,
+          stroke: '#6b7280', 'stroke-width': 2.1, 'stroke-linecap': 'round', 'pointer-events': 'none'
+        }, button);
+        createSvg('line', {
+          x1: x, y1: cy - 4.5, x2: x, y2: cy + 4.5,
+          stroke: '#6b7280', 'stroke-width': 2.1, 'stroke-linecap': 'round', 'pointer-events': 'none'
+        }, button);
+      }, 'circle', createY);
+    }
+    makeButton(editX, '#fff7ed', '#f97316', '#c2410c', 'Modifica stato', () => openStateEditor(state.id), (button, x, cy) => {
+      const text = createSvg('text', {
+        x,
+        y: cy + 3.2,
+        'text-anchor': 'middle',
+        'font-size': 10,
+        'font-weight': 800,
+        fill: '#c2410c',
+        'font-family': SVG_FONT_STACK,
+        'pointer-events': 'none'
+      }, button);
+      text.textContent = 'M';
+    }, 'square', topActionY);
+    makeButton(deleteX, '#fff1f0', '#f2b8b5', '#b42318', 'Cancella stato', () => deleteStateById(state.id), (button, x, cy) => {
+      const text = createSvg('text', {
+        x,
+        y: cy + 3.2,
+        'text-anchor': 'middle',
+        'font-size': 10,
+        'font-weight': 800,
+        fill: '#b42318',
+        'font-family': SVG_FONT_STACK,
+        'pointer-events': 'none'
+      }, button);
+      text.textContent = 'X';
+    }, 'square', topActionY);
+  }
+
+  function buildLabelPlan(model, displayEdges) {
       const groups = new Map();
       const cursors = new Map();
 
@@ -2399,10 +2707,32 @@
       edgeTooltip.style.display = 'none';
     }
 
-    function updateLegendCollapsedState() {
-      legend.classList.toggle('collapsed', legendCollapsed);
-      const toggle = document.getElementById('legendToggle');
-      if (toggle) toggle.textContent = legendCollapsed ? 'mostra' : 'nascondi';
+function updateLegendCollapsedState() {
+  legend.classList.toggle('collapsed', legendCollapsed);
+  const toggle = document.getElementById('legendToggle');
+  if (toggle) {
+    toggle.setAttribute('data-collapsed', legendCollapsed ? 'true' : 'false');
+        toggle.setAttribute('aria-label', legendCollapsed ? 'Espandi legenda' : 'Contrai legenda');
+        toggle.title = legendCollapsed ? 'Espandi legenda' : 'Contrai legenda';
+  }
+}
+
+function updateSettingsCollapsedState() {
+  if (settingsPanel) settingsPanel.classList.toggle('collapsed', settingsCollapsed);
+  if (settingsToggle) {
+    settingsToggle.setAttribute('data-collapsed', settingsCollapsed ? 'true' : 'false');
+    settingsToggle.setAttribute('aria-label', settingsCollapsed ? 'Espandi impostazioni' : 'Contrai impostazioni');
+    settingsToggle.title = settingsCollapsed ? 'Espandi impostazioni' : 'Contrai impostazioni';
+  }
+}
+
+function updateSemanticCollapsedState() {
+  if (semanticPanel) semanticPanel.classList.toggle('collapsed', semanticCollapsed);
+  if (semanticToggle) {
+        semanticToggle.setAttribute('data-collapsed', semanticCollapsed ? 'true' : 'false');
+        semanticToggle.setAttribute('aria-label', semanticCollapsed ? 'Espandi validazione semantica' : 'Contrai validazione semantica');
+        semanticToggle.title = semanticCollapsed ? 'Espandi validazione semantica' : 'Contrai validazione semantica';
+      }
     }
 
     function closeNodeSummary() {
@@ -2706,7 +3036,7 @@
       legend.innerHTML = `
         <div class="legend-header">
           <h3>Legenda</h3>
-          <button type="button" class="legend-toggle" id="legendToggle">${legendCollapsed ? 'mostra' : 'nascondi'}</button>
+          <button type="button" class="collapse-toggle" id="legendToggle" data-collapsed="${legendCollapsed ? 'true' : 'false'}" aria-label="${legendCollapsed ? 'Espandi legenda' : 'Contrai legenda'}" title="${legendCollapsed ? 'Espandi legenda' : 'Contrai legenda'}"></button>
         </div>
         <div class="legend-body">
           <div><b>Stati finali:</b> ${finals || 'nessuno'}</div>
@@ -2749,15 +3079,13 @@
       closeNodeSummary();
       closeEditPanel();
       errorBox.style.display = 'none';
+      updateSemanticValidationPlaceholder('Carica Broker XML e Kernel XML per vedere i controlli strutturali della macchina.', 'in attesa');
       syncMachineHeader(null);
       updateEditModeUI();
     }
 
     function scheduleAutoRender(immediate = false) {
-      if (autoRenderTimer) {
-        clearTimeout(autoRenderTimer);
-        autoRenderTimer = null;
-      }
+      cancelAutoRender();
 
       const brokerText = brokerInput.value.trim();
       const kernelText = kernelInput.value.trim();
@@ -2799,9 +3127,11 @@
       const text = await file.text();
       if (kind === 'broker') {
         brokerFileHandle = handle;
+        setXmlSourceLabel('broker', `Origine file: ${file.name}`);
         setXmlText('broker', text, 'source');
       } else {
         kernelFileHandle = handle;
+        setXmlSourceLabel('kernel', `Origine file: ${file.name}`);
         setXmlText('kernel', text, 'source');
       }
     }
@@ -3774,14 +4104,18 @@
         closeNodeSummary();
         if (!restoreLayoutFromSession(graph)) applyAutoLayout(graph);
         rerenderGraph();
+        renderSemanticValidation(broker, kernel, graph);
         saveLayoutToSession();
         updateEditModeUI();
       } catch (err) {
+        updateSemanticValidationPlaceholder('Validazione semantica disponibile quando Broker XML e Kernel XML sono validi.', 'xml non valido', 'error');
         showError(err.message);
       }
     }
 
     function bootstrapDefaultMachine() {
+      setXmlSourceLabel('broker', 'Origine: demo incorporato');
+      setXmlSourceLabel('kernel', 'Origine: demo incorporato');
       setXmlText('broker', demoBroker);
       setXmlText('kernel', demoKernel);
       renderAll();
@@ -3843,18 +4177,15 @@
         }
       });
     });
-    rollbackBtn.addEventListener('click', async () => {
-      const snapshot = editHistory.pop();
-      updateEditModeUI();
-      if (!snapshot) return;
-      setXmlText('broker', snapshot.brokerText);
-      setXmlText('kernel', snapshot.kernelText);
-      try {
-        await persistXmlToFiles();
-      } catch (err) {
-        showError(`Rollback salvato solo in pagina: ${err.message || err}`);
-      }
-      renderAll();
+    undoBtn.addEventListener('click', performUndo);
+    redoBtn.addEventListener('click', performRedo);
+    settingsToggle?.addEventListener('click', () => {
+      settingsCollapsed = !settingsCollapsed;
+      updateSettingsCollapsedState();
+    });
+    semanticToggle?.addEventListener('click', () => {
+      semanticCollapsed = !semanticCollapsed;
+      updateSemanticCollapsedState();
     });
     brokerFileBtn.addEventListener('click', async () => {
       try {
@@ -3909,6 +4240,7 @@
       if (!file) return;
       try {
         brokerFileHandle = null;
+        setXmlSourceLabel('broker', `Origine file: ${file.webkitRelativePath || file.name}`);
         await loadXmlFileIntoInput(file, brokerInput);
         scheduleAutoRender(true);
       } catch (err) {
@@ -3922,6 +4254,7 @@
       if (!file) return;
       try {
         kernelFileHandle = null;
+        setXmlSourceLabel('kernel', `Origine file: ${file.webkitRelativePath || file.name}`);
         await loadXmlFileIntoInput(file, kernelInput);
         scheduleAutoRender(true);
       } catch (err) {
@@ -3932,29 +4265,37 @@
     });
     brokerInput.addEventListener('input', () => {
       if (brokerEditor.value !== brokerInput.value) brokerEditor.value = brokerInput.value;
+      if (!brokerSourceLabel) setXmlSourceLabel('broker', 'Origine: testo modificato nella pagina');
       setXmlText('broker', brokerInput.value);
-      scheduleAutoRender(false);
+      if (isXmlEditorContentValid('broker') && isXmlEditorContentValid('kernel')) scheduleAutoRender(false);
     });
     kernelInput.addEventListener('input', () => {
       if (kernelEditor.value !== kernelInput.value) kernelEditor.value = kernelInput.value;
+      if (!kernelSourceLabel) setXmlSourceLabel('kernel', 'Origine: testo modificato nella pagina');
       setXmlText('kernel', kernelInput.value);
-      scheduleAutoRender(false);
+      if (isXmlEditorContentValid('broker') && isXmlEditorContentValid('kernel')) scheduleAutoRender(false);
     });
     brokerEditor.addEventListener('input', () => {
       const value = brokerEditor.value;
+      xmlWindowState.broker.draftText = value;
       brokerInput.value = value;
       updateXmlSourceStatus('broker', value);
       autoSizeXmlWindow('broker');
+      refreshXmlEditorDiagnostics('broker');
       scheduleXmlValidation('broker');
-      scheduleAutoRender(false);
+      if (isXmlEditorContentValid('broker') && isXmlEditorContentValid('kernel')) scheduleAutoRender(false);
+      else cancelAutoRender();
     });
     kernelEditor.addEventListener('input', () => {
       const value = kernelEditor.value;
+      xmlWindowState.kernel.draftText = value;
       kernelInput.value = value;
       updateXmlSourceStatus('kernel', value);
       autoSizeXmlWindow('kernel');
+      refreshXmlEditorDiagnostics('kernel');
       scheduleXmlValidation('kernel');
-      scheduleAutoRender(false);
+      if (isXmlEditorContentValid('broker') && isXmlEditorContentValid('kernel')) scheduleAutoRender(false);
+      else cancelAutoRender();
     });
     brokerEditor.addEventListener('scroll', () => syncXmlGutterScroll('broker'));
     kernelEditor.addEventListener('scroll', () => syncXmlGutterScroll('kernel'));
@@ -4168,5 +4509,7 @@
 </StateMachine>`;
 
     updateRenderModeUI();
+    updateSettingsCollapsedState();
+    updateSemanticCollapsedState();
     bootstrapDefaultMachine();
     updateZoomLabel();

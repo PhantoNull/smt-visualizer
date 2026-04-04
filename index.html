@@ -74,30 +74,49 @@
         <textarea id="kernelInput" spellcheck="false" hidden></textarea>
       </div>
 
-      <div class="row">
-        <label class="toggle"><input type="checkbox" id="showSelfLoops" checked /> mostra self-loop</label>
-        <label class="toggle"><input type="checkbox" id="showOutputs" checked /> mostra output</label>
-      </div>
-
-      <div class="row">
-        <label class="toggle"><input type="checkbox" id="showEventNames" checked /> mostra nomi eventi</label>
-        <label class="toggle"><input type="checkbox" id="showTransactions" checked /> mostra transazioni</label>
-      </div>
-
-      <div class="row">
-        <label class="toggle"><input type="checkbox" id="showReachableCascade" /> mostra i nodi raggiungibili discendenti al passaggio del mouse su un nodo</label>
-      </div>
-
-      <div class="row">
-        <label class="toggle"><input type="checkbox" id="showUnused" checked /> mostra stati non raggiungibili</label>
-      </div>
-
-      <div class="range-control">
-        <div class="range-head">
-          <label for="spacingRange">spaziatura nodi</label>
-          <div class="range-value" id="spacingValue">100%</div>
+      <div class="settings-panel" id="settingsPanel">
+        <div class="settings-head">
+          <div class="settings-title">impostazioni</div>
+          <button type="button" class="collapse-toggle" id="settingsToggle" data-collapsed="false" aria-label="Contrai impostazioni" title="Contrai impostazioni"></button>
         </div>
-        <input type="range" id="spacingRange" min="70" max="170" step="5" value="100" />
+        <div class="settings-body" id="settingsBody">
+          <div class="row">
+            <label class="toggle"><input type="checkbox" id="showSelfLoops" checked /> mostra self-loop</label>
+            <label class="toggle"><input type="checkbox" id="showOutputs" checked /> mostra output</label>
+          </div>
+
+          <div class="row">
+            <label class="toggle"><input type="checkbox" id="showEventNames" checked /> mostra nomi eventi</label>
+            <label class="toggle"><input type="checkbox" id="showTransactions" checked /> mostra transazioni</label>
+          </div>
+
+          <div class="row">
+            <label class="toggle"><input type="checkbox" id="showReachableCascade" /> mostra i nodi raggiungibili discendenti al passaggio del mouse su un nodo</label>
+          </div>
+
+          <div class="row">
+            <label class="toggle"><input type="checkbox" id="showUnused" checked /> mostra stati non raggiungibili</label>
+          </div>
+
+          <div class="range-control">
+            <div class="range-head">
+              <label for="spacingRange">spaziatura nodi</label>
+              <div class="range-value" id="spacingValue">100%</div>
+            </div>
+            <input type="range" id="spacingRange" min="70" max="170" step="5" value="100" />
+          </div>
+        </div>
+      </div>
+
+      <div class="semantic-panel" id="semanticPanel">
+        <div class="semantic-head">
+          <div class="semantic-title">validazione semantica</div>
+          <div class="semantic-head-actions">
+            <div class="semantic-status" id="semanticStatus">in attesa</div>
+            <button type="button" class="collapse-toggle" id="semanticToggle" data-collapsed="false" aria-label="Contrai validazione semantica" title="Contrai validazione semantica"></button>
+          </div>
+        </div>
+        <div class="semantic-body" id="semanticBody">Carica Broker XML e Kernel XML per vedere i controlli strutturali della macchina.</div>
       </div>
 
       <div class="footer-note">
@@ -197,7 +216,18 @@
       <button type="button" class="scene-rotate-btn" id="sceneRotateBtn" aria-label="Ferma rotazione automatica" title="Ferma rotazione automatica">Stop rotazione</button>
       <div class="edit-toolbar" id="editToolbar">
         <button type="button" class="edit-action-btn" id="addStateBtn">Aggiungi Stato</button>
-        <button type="button" class="edit-action-btn danger" id="rollbackBtn">Rollback</button>
+        <button type="button" class="edit-action-btn icon-only" id="undoBtn" title="Undo" aria-label="Undo">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M9 7H5v4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M5 11c1.7-3 4.5-5 8-5 4.4 0 8 3.6 8 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <button type="button" class="edit-action-btn icon-only" id="redoBtn" title="Redo" aria-label="Redo">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M15 7h4v4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M19 11c-1.7-3-4.5-5-8-5-4.4 0-8 3.6-8 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
       </div>
       <div class="scene-orientation" id="sceneOrientation" aria-hidden="true">
         <svg id="sceneOrientationSvg" viewBox="0 0 120 120"></svg>
