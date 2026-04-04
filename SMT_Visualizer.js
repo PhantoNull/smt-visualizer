@@ -72,15 +72,17 @@ const semanticToggle = document.getElementById('semanticToggle');
     const confirmAcceptBtn = document.getElementById('confirmAcceptBtn');
     const brokerWindow = document.getElementById('brokerWindow');
     const kernelWindow = document.getElementById('kernelWindow');
-    const brokerEditor = document.getElementById('brokerEditor');
-    const kernelEditor = document.getElementById('kernelEditor');
+const brokerEditor = document.getElementById('brokerEditor');
+const kernelEditor = document.getElementById('kernelEditor');
     const brokerGutter = document.getElementById('brokerGutter');
     const kernelGutter = document.getElementById('kernelGutter');
     const brokerXmlStatus = document.getElementById('brokerXmlStatus');
     const kernelXmlStatus = document.getElementById('kernelXmlStatus');
     const xmlToast = document.getElementById('xmlToast');
-    const brokerWindowClose = document.getElementById('brokerWindowClose');
-    const kernelWindowClose = document.getElementById('kernelWindowClose');
+const brokerWindowClose = document.getElementById('brokerWindowClose');
+const kernelWindowClose = document.getElementById('kernelWindowClose');
+const brokerWindowToggle = document.getElementById('brokerWindowToggle');
+const kernelWindowToggle = document.getElementById('kernelWindowToggle');
 
     const NS = 'http://www.w3.org/2000/svg';
     const SVG_FONT_STACK = 'Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif';
@@ -143,18 +145,20 @@ let semanticCollapsed = false;
     let editDialogOffset = { x: 0, y: 0 };
     let editDialogDrag = null;
     const xmlWindowState = {
-      broker: { element: null, editor: null, gutter: null, status: null, offset: { x: 0, y: 0 }, drag: null, diagnostic: null, validateTimer: null, draftText: '' },
-      kernel: { element: null, editor: null, gutter: null, status: null, offset: { x: 0, y: 0 }, drag: null, diagnostic: null, validateTimer: null, draftText: '' }
+      broker: { element: null, editor: null, gutter: null, status: null, toggle: null, collapsed: false, offset: { x: 0, y: -84 }, drag: null, diagnostic: null, validateTimer: null, draftText: '' },
+      kernel: { element: null, editor: null, gutter: null, status: null, toggle: null, collapsed: false, offset: { x: 0, y: -120 }, drag: null, diagnostic: null, validateTimer: null, draftText: '' }
     };
 
     xmlWindowState.broker.element = brokerWindow;
     xmlWindowState.broker.editor = brokerEditor;
     xmlWindowState.broker.gutter = brokerGutter;
     xmlWindowState.broker.status = brokerXmlStatus;
+    xmlWindowState.broker.toggle = brokerWindowToggle;
     xmlWindowState.kernel.element = kernelWindow;
     xmlWindowState.kernel.editor = kernelEditor;
     xmlWindowState.kernel.gutter = kernelGutter;
     xmlWindowState.kernel.status = kernelXmlStatus;
+    xmlWindowState.kernel.toggle = kernelWindowToggle;
 
     function escapeHtml(str='') {
       return str
@@ -356,9 +360,17 @@ let semanticCollapsed = false;
       const status = kind === 'broker' ? brokerStatus : kernelStatus;
       const sourceLabel = kind === 'broker' ? brokerSourceLabel : kernelSourceLabel;
       if (status) {
-        status.innerHTML = compact
+        if (!compact) {
+          status.classList.remove('valid', 'invalid');
+          status.innerHTML = 'Nessun contenuto caricato.';
+          return;
+        }
+        const diagnostic = extractXmlDiagnostic(compact);
+        status.classList.toggle('valid', diagnostic.valid);
+        status.classList.toggle('invalid', !diagnostic.valid);
+        status.innerHTML = diagnostic.valid
           ? `${lines} righe caricate - ${chars.toLocaleString('it-IT')} caratteri${sourceLabel ? `<br>${escapeHtml(sourceLabel)}` : ''}`
-          : 'Nessun contenuto caricato.';
+          : `XML non valido${diagnostic.line ? ` - linea ${diagnostic.line}` : ''}${diagnostic.column ? `, colonna ${diagnostic.column}` : ''}${sourceLabel ? `<br>${escapeHtml(sourceLabel)}` : ''}`;
       }
     }
 
@@ -383,12 +395,35 @@ let semanticCollapsed = false;
       state.draftText = nextValue;
       normalizeXmlEditor(kind);
       pair.window.classList.add('open');
+      updateXmlWindowCollapsedState(kind);
       pair.window.style.transform = `translate(${xmlWindowState[kind].offset.x}px, ${xmlWindowState[kind].offset.y}px)`;
+      pair.editor.scrollTop = 0;
+      pair.editor.scrollLeft = 0;
+      syncXmlGutterScroll(kind);
       pair.editor.focus();
+      pair.editor.setSelectionRange(0, 0);
     }
 
     function closeXmlWindow(kind) {
       getXmlPair(kind).window.classList.remove('open');
+    }
+
+function updateXmlWindowCollapsedState(kind) {
+  const state = getXmlEditorState(kind);
+  if (state.element) state.element.classList.toggle('collapsed', state.collapsed);
+  if (state.element) {
+    if (state.collapsed) {
+      state.element.style.height = '';
+    } else {
+      autoSizeXmlWindow(kind);
+    }
+  }
+  if (state.toggle) {
+    state.toggle.setAttribute('data-collapsed', state.collapsed ? 'true' : 'false');
+    const label = state.collapsed ? `Espandi editor ${kind === 'broker' ? 'Broker' : 'Kernel'} XML` : `Contrai editor ${kind === 'broker' ? 'Broker' : 'Kernel'} XML`;
+        state.toggle.setAttribute('aria-label', label);
+        state.toggle.title = label;
+      }
     }
 
     function clampXmlWindowOffset(kind, nextX, nextY) {
@@ -502,10 +537,16 @@ let semanticCollapsed = false;
       const state = getXmlEditorState(kind);
       const lines = ((getXmlPair(kind).source.value || state.editor.value) || '').split(/\r?\n/);
       const longest = lines.reduce((max, line) => Math.max(max, line.length), 0);
+      const lineCount = Math.max(1, lines.length);
       const minWidth = 560;
       const maxWidth = Math.max(minWidth, window.innerWidth - 48);
       const targetWidth = Math.min(maxWidth, Math.max(minWidth, 120 + (longest * 8.2)));
+      const minHeight = 260;
+      const maxHeight = Math.max(minHeight, Math.floor(window.innerHeight * 0.8));
+      const editorChromeHeight = 140;
+      const targetHeight = Math.min(maxHeight, Math.max(minHeight, editorChromeHeight + (lineCount * 20)));
       state.element.style.width = `${targetWidth}px`;
+      state.element.style.height = `${targetHeight}px`;
     }
 
     function normalizeXmlEditor(kind) {
@@ -540,7 +581,7 @@ function scheduleXmlValidation(kind) {
       if (track) track.style.transform = `translateY(-${state.editor.scrollTop}px)`;
     }
 
-function renderXmlGutter(kind, text, diagnostic) {
+    function renderXmlGutter(kind, text, diagnostic) {
   const state = getXmlEditorState(kind);
   const totalLines = Math.max(1, String(text || '').split(/\r?\n/).length);
       const rows = [];
@@ -554,8 +595,8 @@ function renderXmlGutter(kind, text, diagnostic) {
       }
 
   state.gutter.innerHTML = `<div class="xml-gutter-track">${rows.join('')}</div>`;
-  syncXmlGutterScroll(kind);
-}
+      syncXmlGutterScroll(kind);
+    }
 
 function updateXmlEditorPresentation(kind, text, diagnostic) {
   const state = getXmlEditorState(kind);
@@ -569,6 +610,7 @@ function updateXmlEditorPresentation(kind, text, diagnostic) {
   state.status.classList.toggle('valid', diagnostic.valid);
   state.status.classList.toggle('invalid', !diagnostic.valid);
   state.editor.classList.toggle('xml-invalid', !diagnostic.valid);
+  syncXmlGutterScroll(kind);
 }
 
 function renderXmlEditor(kind) {
@@ -4235,6 +4277,16 @@ function updateSemanticCollapsedState() {
     });
     brokerWindowClose.addEventListener('click', () => closeXmlWindow('broker'));
     kernelWindowClose.addEventListener('click', () => closeXmlWindow('kernel'));
+    brokerWindowToggle?.addEventListener('click', event => {
+      event.stopPropagation();
+      xmlWindowState.broker.collapsed = !xmlWindowState.broker.collapsed;
+      updateXmlWindowCollapsedState('broker');
+    });
+    kernelWindowToggle?.addEventListener('click', event => {
+      event.stopPropagation();
+      xmlWindowState.kernel.collapsed = !xmlWindowState.kernel.collapsed;
+      updateXmlWindowCollapsedState('kernel');
+    });
     brokerFileInput.addEventListener('change', async () => {
       const file = brokerFileInput.files?.[0];
       if (!file) return;

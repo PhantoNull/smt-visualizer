@@ -1,4 +1,4 @@
-    :root {
+﻿    :root {
       --bg: #f6f7fb;
       --panel: #ffffff;
       --ink: #1f2937;
@@ -132,6 +132,22 @@
       font-size: 11px;
       color: #475569;
       line-height: 1.35;
+      padding: 6px 8px;
+      border-radius: 10px;
+      border: 1px solid transparent;
+      background: transparent;
+    }
+
+    .xml-launcher-status.valid {
+      color: #166534;
+      border-color: #86efac;
+      background: #f0fdf4;
+    }
+
+    .xml-launcher-status.invalid {
+      color: #b42318;
+      border-color: #f5b4ae;
+      background: #fff1f0;
     }
 
     .xml-launcher-actions {
@@ -498,28 +514,33 @@
     .collapse-toggle {
       border: 1px solid #d7dfec;
       border-radius: 10px;
-      width: 28px;
-      height: 28px;
+      width: 36px;
+      height: 36px;
       padding: 0;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       background: #f3f6fc;
       color: #22304a;
-      font-size: 12px;
+      font-size: 0;
       font-weight: 700;
       cursor: pointer;
     }
 
     .collapse-toggle::before {
-      content: '▴';
+      content: '\2304';
+      display: block;
+      font-size: 20px;
+      font-weight: 800;
       line-height: 1;
+      transform: scaleY(0.72);
+      transform-origin: center;
+      margin-top: -1px;
     }
 
     .collapse-toggle[data-collapsed="true"]::before {
-      content: '▾';
+      content: '\2303';
     }
-
     .export-btn {
       width: 52px;
       height: 52px;
@@ -540,6 +561,22 @@
       min-width: 0;
       min-height: 0;
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     .render-mode-btn {
       width: 52px;
@@ -1071,17 +1108,24 @@
       left: 180px;
     }
 
-    .xml-window-head {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
+.xml-window-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
       gap: 12px;
       padding: 14px 16px 10px;
       border-bottom: 1px solid #edf1f7;
       cursor: move;
       user-select: none;
-      background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
-    }
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+}
+
+.xml-window-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
 
     .xml-window-title {
       margin: 0;
@@ -1096,15 +1140,25 @@
       color: var(--muted);
     }
 
-    .xml-window-body {
-      flex: 1;
-      padding: 12px;
-      min-height: 0;
+.xml-window-body {
+  flex: 1;
+  padding: 12px;
+  min-height: 0;
       display: flex;
       flex-direction: column;
       gap: 12px;
-      overflow: hidden;
-    }
+  overflow: hidden;
+}
+
+.xml-window.collapsed .xml-window-body {
+  display: none;
+}
+
+.xml-window.collapsed {
+  height: auto !important;
+  min-height: 0;
+  resize: horizontal;
+}
 
     .xml-toolbar {
       display: flex;
@@ -1146,17 +1200,17 @@
       overflow: hidden;
     }
 
-    .xml-code-shell {
-      min-width: 0;
-      min-height: 100%;
-      height: 100%;
-      display: grid;
-      grid-template-columns: 72px minmax(0, 1fr);
-      border: 1px solid #d7dfec;
-      border-radius: 14px;
-      overflow: hidden;
-      background: #ffffff;
-    }
+.xml-code-shell {
+  min-width: 0;
+  min-height: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  border: 1px solid #d7dfec;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #ffffff;
+}
 
     .xml-gutter {
       min-height: 0;
@@ -1210,20 +1264,20 @@
       cursor: default;
     }
 
-    .xml-window textarea {
-      min-height: 100%;
-      height: 100%;
-      border: 0;
-      border-radius: 0;
-      background: #ffffff;
-      padding: 10px 12px;
-      line-height: 20px;
-      resize: none;
-      white-space: pre;
-      overflow: auto;
-      tab-size: 2;
-      outline: none;
-    }
+.xml-window textarea {
+  min-height: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+  background: #ffffff;
+  padding: 10px 12px;
+  line-height: 20px;
+  resize: none;
+  white-space: pre;
+  overflow: auto;
+  tab-size: 2;
+  outline: none;
+}
 
 .xml-window textarea.xml-invalid {
   background: linear-gradient(180deg, #ffffff 0%, #fff8f7 100%);
