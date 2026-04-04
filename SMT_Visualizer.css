@@ -662,6 +662,12 @@
       cursor: not-allowed;
     }
 
+    .edit-actions button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      filter: saturate(0.4);
+    }
+
     .note { color: var(--muted); font-size: 12px; }
     .error {
       color: #b42318;
@@ -1452,6 +1458,12 @@
       background: #ffffff;
     }
 
+    .edit-field.invalid input,
+    .edit-field.invalid select {
+      border-color: #f5b4ae;
+      background: #fff1f0;
+    }
+
     .edit-field input[readonly] {
       background: #f8fafc;
       color: #64748b;
@@ -1472,6 +1484,22 @@
     .edit-inline-note {
       font-size: 11px;
       color: var(--muted);
+    }
+
+    .edit-inline-error {
+      display: none;
+      margin: 10px 0 12px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid #f5b4ae;
+      background: #fff1f0;
+      color: #b42318;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .edit-inline-error.active {
+      display: block;
     }
 
     .edit-list {

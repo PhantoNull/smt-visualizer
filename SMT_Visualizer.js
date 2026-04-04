@@ -1022,6 +1022,7 @@ function refreshXmlEditorDiagnostics(kind) {
       canvasWrap.classList.toggle('edit-active', editMode);
       machineHeaderEditor.classList.toggle('active', !!(editMode && graph));
       machineTitle.style.display = editMode && graph ? 'none' : '';
+      addStateBtn.disabled = !(editMode && graph);
       undoBtn.disabled = editUndoHistory.length === 0;
       redoBtn.disabled = editRedoHistory.length === 0;
     }
@@ -3456,23 +3457,44 @@ function updateSemanticCollapsedState() {
             <div class="edit-inline-warning" id="stateFinalWarning">
               Settare come stato finale cancellerà tutte le transazioni da questo nodo.
             </div>
+            <div class="edit-inline-error" id="stateEditError"></div>
             <div class="edit-actions">
-              <button type="button" class="secondary" id="stateCancelBtn">Annulla</button>
               <button type="submit">${stateId ? 'Salva modifiche' : 'Aggiungi stato'}</button>
             </div>
           </form>
         `
       );
 
-      document.getElementById('stateCancelBtn')?.addEventListener('click', closeEditPanel);
+      const stateForm = document.getElementById('stateEditForm');
+      const stateSubmitBtn = stateForm?.querySelector('button[type="submit"]');
       const stateFinalCheckbox = document.querySelector('#stateEditForm [name="stateFinal"]');
       const stateFinalWarning = document.getElementById('stateFinalWarning');
+      const validateStateForm = () => {
+        const id = String(stateForm?.querySelector('[name="stateId"]')?.value || '').trim();
+        const name = String(stateForm?.querySelector('[name="stateName"]')?.value || '').trim();
+        if (!id || !name) {
+          const missing = [];
+          if (!id) missing.push('stateId');
+          if (!name) missing.push('stateName');
+          setEditFieldError(stateForm, missing, 'ID e nome stato sono obbligatori');
+          if (stateSubmitBtn) stateSubmitBtn.disabled = true;
+          return false;
+        }
+        const duplicate = [...(lastParsedBroker?.states || []), ...(lastParsedKernel?.states || [])]
+          .some(state => state.id === id && state.id !== stateId);
+        setEditFieldError(stateForm, duplicate ? ['stateId'] : [], duplicate ? `Esiste già uno stato con ID ${id}` : '');
+        if (stateSubmitBtn) stateSubmitBtn.disabled = duplicate;
+        return !duplicate;
+      };
       const syncFinalWarning = () => {
         const shouldShow = !!(outgoingCount && stateFinalCheckbox?.checked);
         stateFinalWarning?.classList.toggle('active', shouldShow);
       };
+      stateForm?.querySelector('[name="stateId"]')?.addEventListener('input', validateStateForm);
+      stateForm?.querySelector('[name="stateName"]')?.addEventListener('input', validateStateForm);
       stateFinalCheckbox?.addEventListener('change', syncFinalWarning);
       syncFinalWarning();
+      validateStateForm();
       document.getElementById('stateEditForm')?.addEventListener('submit', async event => {
         event.preventDefault();
         const form = new FormData(event.currentTarget);
@@ -3483,10 +3505,8 @@ function updateSemanticCollapsedState() {
           initial: form.get('stateInitial') === 'on',
           final: form.get('stateFinal') === 'on'
         };
-        if (!nextState.id || !nextState.name) {
-          showError('ID e nome stato sono obbligatori');
-          return;
-        }
+        if (!nextState.id || !nextState.name) return;
+        if (!validateStateForm()) return;
 
         try {
           await applyEditableMutation(async (broker, kernel) => {
@@ -3509,7 +3529,7 @@ function updateSemanticCollapsedState() {
           });
           closeEditPanel();
         } catch (err) {
-          showError(`Modifica stato fallita: ${err.message || err}`);
+          setEditFieldError(stateForm, [], `Modifica stato fallita: ${err.message || err}`);
         }
       });
     }
@@ -3608,7 +3628,6 @@ function updateSemanticCollapsedState() {
             <div class="transition-editor-detail" id="transitionDetail"></div>
           </div>
           <div class="edit-actions">
-            <button type="button" class="secondary" id="transitionCancelBtn">Annulla</button>
             <button type="button" id="transitionSaveBtn">${edge ? 'Salva gruppo' : 'Crea transizione'}</button>
           </div>
         `,
@@ -3618,9 +3637,11 @@ function updateSemanticCollapsedState() {
       const list = document.getElementById('transitionList');
       const detail = document.getElementById('transitionDetail');
       const count = document.getElementById('transitionCount');
+      const transitionSaveBtn = document.getElementById('transitionSaveBtn');
 
       const rows = transitions.map(transition => ({ ...transition }));
       let selectedIndex = rows.length ? (shouldAppendNewDraft ? rows.length - 1 : 0) : -1;
+      let validateCurrentTransitionRow = () => true;
 
       const syncActiveRowFromDom = () => {
         if (selectedIndex < 0 || !rows[selectedIndex] || !detail.querySelector('.edit-card')) return;
@@ -3641,10 +3662,51 @@ function updateSemanticCollapsedState() {
                 <button type="button" class="edit-mini-btn danger" id="transitionRemoveActiveBtn">Rimuovi</button>
               </div>
             </div>
+            <div class="edit-inline-error" id="transitionRowError"></div>
             ${transitionEditorFields('active', row, stateOptions, eventOptions, outputOptions, lockNodes)}
           </div>
         `;
         bindTransitionRowBehavior(detail);
+        const validateActiveRow = () => {
+          if (selectedIndex < 0 || !rows[selectedIndex]) return true;
+          const rowData = readTransitionRow(detail, 'active');
+          rows[selectedIndex] = rowData;
+          const eventSelect = detail.querySelector('[name="activeEventId"]');
+          const outputSelect = detail.querySelector('[name="activeOutputId"]');
+          const missingFields = [];
+          if (!rowData.id) missingFields.push('activeId');
+          if (!rowData.from) missingFields.push('activeFrom');
+          if (!rowData.to) missingFields.push('activeTo');
+          if (!rowData.eventId) missingFields.push(eventSelect?.value === '__new__' ? 'activeEventIdCustom' : 'activeEventId');
+          if (!rowData.outputId) missingFields.push(outputSelect?.value === '__new__' ? 'activeOutputIdCustom' : 'activeOutputId');
+          const duplicateTransitionId = rowData.id && rows.some((item, index) => index !== selectedIndex && item.id === rowData.id);
+          const duplicateKernelId = rowData.id && (lastParsedKernel?.transitions || []).some(transition => {
+            const sameEditedGroup = edge && transition.from === edge.from && transition.to === edge.to;
+            return !sameEditedGroup && transition.id === rowData.id;
+          });
+          const duplicateEventId = rowData.eventId && eventSelect?.value === '__new__' && (lastParsedBroker?.inputEvents || []).some(event => event.id === rowData.eventId);
+          const duplicateOutputId = rowData.outputId && outputSelect?.value === '__new__' && (lastParsedBroker?.outputs || []).some(output => output.id === rowData.outputId);
+          const message = missingFields.length ? 'Ogni transizione richiede ID, stato sorgente, stato destinazione, input event e output' : duplicateTransitionId || duplicateKernelId
+            ? `Esiste già una transizione con ID ${rowData.id}`
+            : duplicateEventId
+              ? `Esiste già un InputEvent con ID ${rowData.eventId}`
+              : duplicateOutputId
+                ? `Esiste già un OutputFunction con ID ${rowData.outputId}`
+                : '';
+          const invalidFields = [...missingFields];
+          if (duplicateTransitionId || duplicateKernelId) invalidFields.push('activeId');
+          if (duplicateEventId) invalidFields.push('activeEventIdCustom');
+          if (duplicateOutputId) invalidFields.push('activeOutputIdCustom');
+          setEditFieldError(detail, invalidFields, message);
+          if (transitionSaveBtn) transitionSaveBtn.disabled = !!message;
+          return !message;
+        };
+        detail.querySelectorAll('input, select').forEach(field => {
+          field.addEventListener('input', validateActiveRow);
+          field.addEventListener('change', validateActiveRow);
+        });
+        validateCurrentTransitionRow = validateActiveRow;
+        validateActiveRow();
         document.getElementById('transitionRemoveActiveBtn')?.addEventListener('click', () => {
           if (selectedIndex < 0) return;
           rows.splice(selectedIndex, 1);
@@ -3709,9 +3771,9 @@ function updateSemanticCollapsedState() {
         renderRows();
       });
 
-      document.getElementById('transitionCancelBtn')?.addEventListener('click', closeEditPanel);
       document.getElementById('transitionSaveBtn')?.addEventListener('click', async () => {
         try {
+          if (!validateCurrentTransitionRow()) return;
           syncActiveRowFromDom();
           const nextRows = rows.filter(item => item.id || item.from || item.to || item.eventId || item.outputId);
 
@@ -3721,6 +3783,7 @@ function updateSemanticCollapsedState() {
 
           await applyEditableMutation(async (broker, kernel) => {
             const stateIds = new Set([...broker.states, ...kernel.states].map(state => state.id));
+            const seenTransitionIds = new Set();
             nextRows.forEach(row => {
               if (!row.id || !row.from || !row.to || !row.eventId || !row.outputId) {
                 throw new Error('Ogni transizione richiede ID, stato sorgente, stato destinazione, input event e output');
@@ -3728,6 +3791,10 @@ function updateSemanticCollapsedState() {
               if (!stateIds.has(row.from) || !stateIds.has(row.to)) {
                 throw new Error('La transizione fa riferimento a uno stato inesistente');
               }
+              if (seenTransitionIds.has(row.id)) {
+                throw new Error(`Esiste già una transizione con ID ${row.id}`);
+              }
+              seenTransitionIds.add(row.id);
             });
 
             if (edge) {
@@ -3735,6 +3802,17 @@ function updateSemanticCollapsedState() {
             }
 
             nextRows.forEach(row => {
+              if (kernel.transitions.some(transition => transition.id === row.id)) {
+                throw new Error(`Esiste già una transizione con ID ${row.id}`);
+              }
+              if ((lastParsedBroker?.inputEvents || []).some(event => event.id === row.eventId) &&
+                  !broker.inputEvents.some(event => event.id === row.eventId)) {
+                throw new Error(`Esiste già un InputEvent con ID ${row.eventId}`);
+              }
+              if ((lastParsedBroker?.outputs || []).some(output => output.id === row.outputId) &&
+                  !broker.outputs.some(output => output.id === row.outputId)) {
+                throw new Error(`Esiste già un OutputFunction con ID ${row.outputId}`);
+              }
               upsertEventAndOutput(broker, row, row);
               kernel.transitions.push({
                 id: row.id,
@@ -3747,7 +3825,7 @@ function updateSemanticCollapsedState() {
           });
           closeEditPanel();
         } catch (err) {
-          showError(`Modifica transizioni fallita: ${err.message || err}`);
+          setEditFieldError(detail, [], `Modifica transizioni fallita: ${err.message || err}`);
         }
       });
     }
@@ -3925,6 +4003,18 @@ function updateSemanticCollapsedState() {
         rerenderPreservingPositions();
         updateNodeFocus(dragged.id);
       });
+    }
+
+    function setEditFieldError(formOrContainer, fieldNames = [], message = '') {
+      formOrContainer?.querySelectorAll?.('.edit-field.invalid').forEach(field => field.classList.remove('invalid'));
+      fieldNames.forEach(name => {
+        formOrContainer?.querySelector?.(`[name="${name}"]`)?.closest('.edit-field')?.classList.add('invalid');
+      });
+      const errorBox = formOrContainer?.querySelector?.('.edit-inline-error');
+      if (errorBox) {
+        errorBox.textContent = message;
+        errorBox.classList.toggle('active', !!message);
+      }
     }
 
     function scheduleSceneRender() {
