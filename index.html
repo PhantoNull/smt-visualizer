@@ -10,31 +10,31 @@
   <div class="app">
     <aside class="panel sidebar">
       <div>
-        <h1>SMT visualizer</h1>
-        <div class="sub">Incolla <b>BrokerStateMachine</b> e <b>StateMachine</b>. La pagina estrae stati, input event, output function e transizioni, poi genera un diagramma leggibile con layout automatico e nodi trascinabili.</div>
+        <h1 id="appTitle" data-i18n="appTitle">SMT visualizer</h1>
+        <div class="sub" id="appSubtitle" data-i18n-html="appSubtitle">Incolla <b>BrokerStateMachine</b> e <b>StateMachine</b>. La pagina estrae stati, input event, output function e transizioni, poi genera un diagramma leggibile con layout automatico e nodi trascinabili.</div>
       </div>
 
       <div class="error" id="errorBox"></div>
 
       <div class="xml-launcher">
         <div class="xml-launcher-copy">
-          <div class="xml-launcher-title">Broker XML</div>
-          <div class="xml-launcher-sub">Apri il file o modifica il contenuto in una finestra dedicata.</div>
+          <div class="xml-launcher-title" id="brokerLauncherTitle" data-i18n="brokerXml">Broker XML</div>
+          <div class="xml-launcher-sub" id="brokerLauncherSub" data-i18n="xmlLauncherSub">Apri il file o modifica il contenuto in una finestra dedicata.</div>
           <div class="xml-launcher-status" id="brokerStatus">Nessun contenuto caricato.</div>
         </div>
         <div class="xml-launcher-actions">
-          <button type="button" class="file-btn edit-btn" id="brokerEditBtn" title="Modifica Broker XML" aria-label="Modifica Broker XML">
+          <button type="button" class="file-btn edit-btn" id="brokerEditBtn" title="Modifica Broker XML" aria-label="Modifica Broker XML" data-i18n-attrs="title:editBrokerXml;aria-label:editBrokerXml">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M4 16.5V20h3.5L18.2 9.3l-3.5-3.5L4 16.5zm11.7-11.7l1.5-1.5a1.8 1.8 0 012.5 0l1.4 1.4a1.8 1.8 0 010 2.5l-1.5 1.5-3.9-3.9z" fill="currentColor"/>
             </svg>
           </button>
-          <button type="button" class="file-btn save-btn" id="brokerSaveBtn" title="Salva Broker XML" aria-label="Salva Broker XML">
+          <button type="button" class="file-btn save-btn" id="brokerSaveBtn" title="Salva Broker XML" aria-label="Salva Broker XML" data-i18n-attrs="title:saveBrokerXml;aria-label:saveBrokerXml">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M5 4h11l3 3v13H5V4zm2 2v4h8V6H7zm0 8v4h10v-4H7z" fill="currentColor"/>
               <path d="M9 6h4v3H9V6z" fill="#ffffff"/>
             </svg>
           </button>
-          <button type="button" class="file-btn" id="brokerFileBtn" title="Apri file" aria-label="Apri file Broker XML">
+          <button type="button" class="file-btn" id="brokerFileBtn" title="Apri file" aria-label="Apri file Broker XML" data-i18n-attrs="title:openBrokerFile;aria-label:openBrokerFile">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M3 7a2 2 0 012-2h4.2l1.7 1.8H19a2 2 0 012 2v1H3V7z" fill="#facc15"/>
               <path d="M3 10h18v7a2 2 0 01-2 2H5a2 2 0 01-2-2v-7z" fill="#eab308"/>
@@ -47,23 +47,23 @@
 
       <div class="xml-launcher">
         <div class="xml-launcher-copy">
-          <div class="xml-launcher-title">Kernel XML</div>
-          <div class="xml-launcher-sub">Apri il file o modifica il contenuto in una finestra dedicata.</div>
+          <div class="xml-launcher-title" id="kernelLauncherTitle" data-i18n="kernelXml">Kernel XML</div>
+          <div class="xml-launcher-sub" id="kernelLauncherSub" data-i18n="xmlLauncherSub">Apri il file o modifica il contenuto in una finestra dedicata.</div>
           <div class="xml-launcher-status" id="kernelStatus">Nessun contenuto caricato.</div>
         </div>
         <div class="xml-launcher-actions">
-          <button type="button" class="file-btn edit-btn" id="kernelEditBtn" title="Modifica Kernel XML" aria-label="Modifica Kernel XML">
+          <button type="button" class="file-btn edit-btn" id="kernelEditBtn" title="Modifica Kernel XML" aria-label="Modifica Kernel XML" data-i18n-attrs="title:editKernelXml;aria-label:editKernelXml">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M4 16.5V20h3.5L18.2 9.3l-3.5-3.5L4 16.5zm11.7-11.7l1.5-1.5a1.8 1.8 0 012.5 0l1.4 1.4a1.8 1.8 0 010 2.5l-1.5 1.5-3.9-3.9z" fill="currentColor"/>
             </svg>
           </button>
-          <button type="button" class="file-btn save-btn" id="kernelSaveBtn" title="Salva Kernel XML" aria-label="Salva Kernel XML">
+          <button type="button" class="file-btn save-btn" id="kernelSaveBtn" title="Salva Kernel XML" aria-label="Salva Kernel XML" data-i18n-attrs="title:saveKernelXml;aria-label:saveKernelXml">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M5 4h11l3 3v13H5V4zm2 2v4h8V6H7zm0 8v4h10v-4H7z" fill="currentColor"/>
               <path d="M9 6h4v3H9V6z" fill="#ffffff"/>
             </svg>
           </button>
-          <button type="button" class="file-btn" id="kernelFileBtn" title="Apri file" aria-label="Apri file Kernel XML">
+          <button type="button" class="file-btn" id="kernelFileBtn" title="Apri file" aria-label="Apri file Kernel XML" data-i18n-attrs="title:openKernelFile;aria-label:openKernelFile">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M3 7a2 2 0 012-2h4.2l1.7 1.8H19a2 2 0 012 2v1H3V7z" fill="#facc15"/>
               <path d="M3 10h18v7a2 2 0 01-2 2H5a2 2 0 01-2-2v-7z" fill="#eab308"/>
@@ -76,31 +76,31 @@
 
       <div class="settings-panel" id="settingsPanel">
         <div class="settings-head">
-          <div class="settings-title">impostazioni</div>
+          <div class="settings-title" id="settingsTitle" data-i18n="settings">impostazioni</div>
           <button type="button" class="collapse-toggle" id="settingsToggle" data-collapsed="false" aria-label="Contrai impostazioni" title="Contrai impostazioni"></button>
         </div>
         <div class="settings-body" id="settingsBody">
           <div class="row">
-            <label class="toggle"><input type="checkbox" id="showSelfLoops" checked /> mostra self-loop</label>
-            <label class="toggle"><input type="checkbox" id="showOutputs" checked /> mostra output</label>
+            <label class="toggle"><input type="checkbox" id="showSelfLoops" checked /> <span id="showSelfLoopsLabel" data-i18n="showSelfLoops">mostra self-loop</span></label>
+            <label class="toggle"><input type="checkbox" id="showOutputs" checked /> <span id="showOutputsLabel" data-i18n="showOutputs">mostra output</span></label>
           </div>
 
           <div class="row">
-            <label class="toggle"><input type="checkbox" id="showEventNames" checked /> mostra nomi eventi</label>
-            <label class="toggle"><input type="checkbox" id="showTransactions" checked /> mostra transazioni</label>
+            <label class="toggle"><input type="checkbox" id="showEventNames" checked /> <span id="showEventNamesLabel" data-i18n="showEventNames">mostra nomi eventi</span></label>
+            <label class="toggle"><input type="checkbox" id="showTransactions" checked /> <span id="showTransactionsLabel" data-i18n="showTransitions">mostra transazioni</span></label>
           </div>
 
           <div class="row">
-            <label class="toggle"><input type="checkbox" id="showReachableCascade" /> mostra i nodi raggiungibili discendenti al passaggio del mouse su un nodo</label>
+            <label class="toggle"><input type="checkbox" id="showReachableCascade" /> <span id="showReachableCascadeLabel" data-i18n="showReachableCascade">mostra i nodi raggiungibili discendenti al passaggio del mouse su un nodo</span></label>
           </div>
 
           <div class="row">
-            <label class="toggle"><input type="checkbox" id="showUnused" checked /> mostra stati non raggiungibili</label>
+            <label class="toggle"><input type="checkbox" id="showUnused" checked /> <span id="showUnusedLabel" data-i18n="showUnused">mostra stati non raggiungibili</span></label>
           </div>
 
           <div class="range-control">
             <div class="range-head">
-              <label for="spacingRange">spaziatura nodi</label>
+              <label for="spacingRange" id="spacingRangeLabel" data-i18n="nodeSpacing">spaziatura nodi</label>
               <div class="range-value" id="spacingValue">100%</div>
             </div>
             <input type="range" id="spacingRange" min="70" max="170" step="5" value="100" />
@@ -110,20 +110,20 @@
 
       <div class="semantic-panel" id="semanticPanel">
         <div class="semantic-head">
-          <div class="semantic-title">validazione semantica</div>
+          <div class="semantic-title" id="semanticTitle" data-i18n="semanticValidation">validazione semantica</div>
           <div class="semantic-head-actions">
             <div class="semantic-status" id="semanticStatus">in attesa</div>
             <button type="button" class="collapse-toggle" id="semanticToggle" data-collapsed="false" aria-label="Contrai validazione semantica" title="Contrai validazione semantica"></button>
           </div>
         </div>
-        <div class="semantic-body" id="semanticBody">Carica Broker XML e Kernel XML per vedere i controlli strutturali della macchina.</div>
+        <div class="semantic-body" id="semanticBody" data-i18n="semanticPlaceholder">Carica Broker XML e Kernel XML per vedere i controlli strutturali della macchina.</div>
       </div>
 
-      <div class="footer-note">
+      <div class="footer-note" id="footerHint" data-i18n-html="footerHint">
         Suggerimento: dopo il render puoi <b>trascinare gli stati</b> per rifinire manualmente lo spacing. Le curve e le etichette si aggiornano in tempo reale.
       </div>
 
-      <div class="footer-note">
+      <div class="footer-note" id="footerLicense" data-i18n-html="footerLicense">
         Licenza: <b>Creative Commons BY 4.0</b> by <a class="footer-link" href="https://github.com/PhantoNull/smt-visualizer" target="_blank" rel="noopener noreferrer">PhantoNull</a>.
       </div>
 
@@ -131,10 +131,10 @@
         <div class="summary-dialog" role="dialog" aria-modal="true" aria-labelledby="summaryTitle">
           <div class="summary-head">
             <div>
-              <h3 class="summary-title" id="summaryTitle">Riepilogo nodo</h3>
+            <h3 class="summary-title" id="summaryTitle" data-i18n="summaryTitle">Riepilogo nodo</h3>
               <div class="summary-sub" id="summarySub"></div>
             </div>
-            <button type="button" class="summary-close" id="summaryClose" aria-label="Chiudi popup">X</button>
+            <button type="button" class="summary-close" id="summaryClose" aria-label="Chiudi popup" data-i18n-attrs="aria-label:closePopup">X</button>
           </div>
           <div id="summaryBody"></div>
         </div>
@@ -147,39 +147,39 @@
           <div class="title-row">
             <h2 id="machineTitle">Nessuna macchina caricata</h2>
             <div class="machine-header-edit" id="machineHeaderEditor">
-              <input type="text" id="machineIdInput" placeholder="ID macchina" />
-              <input type="text" id="machineNameInput" placeholder="Nome macchina" />
+              <input type="text" id="machineIdInput" placeholder="ID macchina" data-i18n-placeholder="machineIdPlaceholder" />
+              <input type="text" id="machineNameInput" placeholder="Nome macchina" data-i18n-placeholder="machineNamePlaceholder" />
             </div>
             <div class="edit-warning" id="editWarning">
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M12 3l9 16H3L12 3zm0 5.6l-.8 5.9h1.6L12 8.6zm0 8.8a1.1 1.1 0 100-2.2 1.1 1.1 0 000 2.2z" fill="currentColor"/>
               </svg>
-              <span>MODALITA' MODIFICA</span>
+              <span data-i18n="editMode">MODALITA' MODIFICA</span>
             </div>
           </div>
           <div class="meta" id="machineMeta">Incolla i due XML o apri i file corrispondenti.</div>
         </div>
         <div class="topbar-right">
           <div class="topbar-group topbar-group-machine">
-            <button type="button" class="export-btn new-machine-btn" id="newMachineBtn" title="Nuova state machine" aria-label="Nuova state machine">
+            <button type="button" class="export-btn new-machine-btn" id="newMachineBtn" title="Nuova state machine" aria-label="Nuova state machine" data-i18n-attrs="title:newStateMachine;aria-label:newStateMachine">
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
               </svg>
             </button>
-            <button type="button" class="export-btn cleanup-btn" id="cleanupBrokerBtn" title="Rimuovi eventi e output non utilizzati" aria-label="Rimuovi eventi e output non utilizzati">
+              <button type="button" class="export-btn cleanup-btn" id="cleanupBrokerBtn" title="Rimuovi eventi e output non utilizzati" aria-label="Rimuovi eventi e output non utilizzati" data-i18n-attrs="title:cleanupUnused;aria-label:cleanupUnused">
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M9 4h6l1 2h4v2H4V6h4l1-2zm-2 6h2v8H7v-8zm4 0h2v8h-2v-8zm4 0h2v8h-2v-8z" fill="currentColor"/>
               </svg>
             </button>
           </div>
           <div class="zoom-controls" aria-label="Zoom grafo">
-            <button type="button" class="export-btn zoom-btn" id="zoomOutBtn" title="Zoom out" aria-label="Zoom out">
+            <button type="button" class="export-btn zoom-btn" id="zoomOutBtn" title="Zoom out" aria-label="Zoom out" data-i18n-attrs="title:zoomOut;aria-label:zoomOut">
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M10.5 4a6.5 6.5 0 104.06 11.58l4.43 4.43 1.41-1.41-4.43-4.43A6.5 6.5 0 0010.5 4zm-3 6h6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
               </svg>
             </button>
             <div class="zoom-value" id="zoomValue">100%</div>
-            <button type="button" class="export-btn zoom-btn" id="zoomInBtn" title="Zoom in" aria-label="Zoom in">
+            <button type="button" class="export-btn zoom-btn" id="zoomInBtn" title="Zoom in" aria-label="Zoom in" data-i18n-attrs="title:zoomIn;aria-label:zoomIn">
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M10.5 4a6.5 6.5 0 104.06 11.58l4.43 4.43 1.41-1.41-4.43-4.43A6.5 6.5 0 0010.5 4zm0 3v6m-3-3h6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
               </svg>
@@ -189,23 +189,34 @@
           <button type="button" class="export-btn render-mode-btn" id="renderModeBtn" title="Passa a modalita 3D" aria-label="Passa a modalita 3D">
             <span id="renderModeLabel">2D</span>
           </button>
-          <button type="button" class="export-btn edit-mode-btn" id="editModeBtn" title="Attiva/disattiva modalita modifica" aria-label="Attiva/disattiva modalita modifica">
+          <button type="button" class="export-btn edit-mode-btn" id="editModeBtn" title="Attiva/disattiva modalita modifica" aria-label="Attiva/disattiva modalita modifica" data-i18n-attrs="title:toggleEditMode;aria-label:toggleEditMode">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M4 16.5V20h3.5L18.2 9.3l-3.5-3.5L4 16.5zm11.7-11.7l1.5-1.5a1.8 1.8 0 012.5 0l1.4 1.4a1.8 1.8 0 010 2.5l-1.5 1.5-3.9-3.9z" fill="currentColor"/>
             </svg>
           </button>
-          <button type="button" class="export-btn" id="exportBtn" title="Esporta PNG" aria-label="Esporta PNG">
+          <button type="button" class="export-btn" id="exportBtn" title="Esporta PNG" aria-label="Esporta PNG" data-i18n-attrs="title:exportPng;aria-label:exportPng">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M8 7l1.6-2h4.8L16 7h2a3 3 0 013 3v7a3 3 0 01-3 3H6a3 3 0 01-3-3v-7a3 3 0 013-3h2zm4 11.2a4.2 4.2 0 100-8.4 4.2 4.2 0 000 8.4zm0-1.8a2.4 2.4 0 100-4.8 2.4 2.4 0 000 4.8z" fill="currentColor"/>
             </svg>
           </button>
-          <button type="button" class="export-btn" id="resetLayoutBtn" title="Reset posizione nodi" aria-label="Reset posizione nodi">
+          <button type="button" class="export-btn" id="resetLayoutBtn" title="Reset posizione nodi" aria-label="Reset posizione nodi" data-i18n-attrs="title:resetLayout;aria-label:resetLayout">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M12 5a7 7 0 107 7" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>
               <path d="M16 5h3v3" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
               <path d="M12 9v3l2 1.5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </button>
+          </div>
+          <div class="topbar-group topbar-group-language">
+            <div class="language-menu" id="languageMenu">
+              <button type="button" class="language-trigger" id="languageTrigger" aria-label="Language" aria-haspopup="listbox" aria-expanded="false">
+                <span id="languageTriggerLabel">🇮🇹</span>
+              </button>
+              <div class="language-dropdown" id="languageDropdown" role="listbox" aria-label="Language">
+                <button type="button" class="language-option" id="languageOptionIt" data-language="it" role="option" aria-label="Italiano">🇮🇹</button>
+                <button type="button" class="language-option" id="languageOptionEn" data-language="en" role="option" aria-label="English">🇬🇧</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -215,7 +226,7 @@
       </div>
       <button type="button" class="scene-rotate-btn" id="sceneRotateBtn" aria-label="Ferma rotazione automatica" title="Ferma rotazione automatica">Stop rotazione</button>
       <div class="edit-toolbar" id="editToolbar">
-        <button type="button" class="edit-action-btn" id="addStateBtn">Aggiungi Stato</button>
+        <button type="button" class="edit-action-btn" id="addStateBtn" data-i18n="addState">Aggiungi Stato</button>
         <button type="button" class="edit-action-btn icon-only" id="undoBtn" title="Undo" aria-label="Undo">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M9 7H5v4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -240,7 +251,7 @@
     <div class="edit-dialog" role="dialog" aria-modal="true" aria-labelledby="editTitle">
       <div class="edit-head">
         <div>
-          <h3 class="edit-title" id="editTitle">Modalita modifica</h3>
+            <h3 class="edit-title" id="editTitle" data-i18n="editDialogTitle">Modalita modifica</h3>
           <div class="edit-sub" id="editSub"></div>
         </div>
         <button type="button" class="edit-close" id="editClose" aria-label="Chiudi editor">X</button>
@@ -252,17 +263,17 @@
   <div class="xml-window" id="brokerWindow" data-kind="broker">
     <div class="xml-window-head" data-drag-handle="broker">
       <div>
-        <h3 class="xml-window-title">Broker XML</h3>
-        <div class="xml-window-sub">Finestra trascinabile e ridimensionabile.</div>
+        <h3 class="xml-window-title" data-i18n="brokerXml">Broker XML</h3>
+        <div class="xml-window-sub" data-i18n="xmlWindowSubtitle">Finestra trascinabile e ridimensionabile.</div>
       </div>
       <div class="xml-window-head-actions">
         <button type="button" class="collapse-toggle" id="brokerWindowToggle" data-collapsed="false" aria-label="Contrai editor Broker XML" title="Contrai editor Broker XML"></button>
-        <button type="button" class="edit-close" id="brokerWindowClose" aria-label="Chiudi editor Broker XML">X</button>
+        <button type="button" class="edit-close" id="brokerWindowClose" aria-label="Chiudi editor Broker XML" data-i18n-attrs="aria-label:closePopup">X</button>
       </div>
     </div>
     <div class="xml-window-body">
       <div class="xml-toolbar">
-        <div class="xml-toolbar-status" id="brokerXmlStatus">Editor XML pronto.</div>
+        <div class="xml-toolbar-status" id="brokerXmlStatus" data-i18n="xmlEditorReady">Editor XML pronto.</div>
       </div>
       <div class="xml-editor-layout">
         <div class="xml-code-shell">
@@ -276,17 +287,17 @@
   <div class="xml-window" id="kernelWindow" data-kind="kernel">
     <div class="xml-window-head" data-drag-handle="kernel">
       <div>
-        <h3 class="xml-window-title">Kernel XML</h3>
-        <div class="xml-window-sub">Finestra trascinabile e ridimensionabile.</div>
+        <h3 class="xml-window-title" data-i18n="kernelXml">Kernel XML</h3>
+        <div class="xml-window-sub" data-i18n="xmlWindowSubtitle">Finestra trascinabile e ridimensionabile.</div>
       </div>
       <div class="xml-window-head-actions">
         <button type="button" class="collapse-toggle" id="kernelWindowToggle" data-collapsed="false" aria-label="Contrai editor Kernel XML" title="Contrai editor Kernel XML"></button>
-        <button type="button" class="edit-close" id="kernelWindowClose" aria-label="Chiudi editor Kernel XML">X</button>
+        <button type="button" class="edit-close" id="kernelWindowClose" aria-label="Chiudi editor Kernel XML" data-i18n-attrs="aria-label:closePopup">X</button>
       </div>
     </div>
     <div class="xml-window-body">
       <div class="xml-toolbar">
-        <div class="xml-toolbar-status" id="kernelXmlStatus">Editor XML pronto.</div>
+        <div class="xml-toolbar-status" id="kernelXmlStatus" data-i18n="xmlEditorReady">Editor XML pronto.</div>
       </div>
       <div class="xml-editor-layout">
         <div class="xml-code-shell">
@@ -301,11 +312,11 @@
 
   <div class="confirm-panel" id="confirmPanel">
     <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
-      <h3 class="confirm-title" id="confirmTitle">Conferma cancellazione</h3>
+      <h3 class="confirm-title" id="confirmTitle" data-i18n="confirmDeleteTitle">Conferma cancellazione</h3>
       <div class="confirm-text" id="confirmText"></div>
       <div class="confirm-actions">
-        <button type="button" class="secondary" id="confirmCancelBtn">Annulla</button>
-        <button type="button" id="confirmAcceptBtn">Conferma</button>
+        <button type="button" class="secondary" id="confirmCancelBtn" data-i18n="cancel">Annulla</button>
+        <button type="button" id="confirmAcceptBtn" data-i18n="confirm">Conferma</button>
       </div>
     </div>
   </div>

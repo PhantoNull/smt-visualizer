@@ -1,4 +1,4 @@
-    const brokerInput = document.getElementById('brokerInput');
+﻿    const brokerInput = document.getElementById('brokerInput');
     const kernelInput = document.getElementById('kernelInput');
     const svg = document.getElementById('svg');
     const canvasWrap = document.querySelector('.canvas-wrap');
@@ -29,6 +29,10 @@
     const addStateBtn = document.getElementById('addStateBtn');
     const undoBtn = document.getElementById('undoBtn');
     const redoBtn = document.getElementById('redoBtn');
+    const languageMenu = document.getElementById('languageMenu');
+    const languageTrigger = document.getElementById('languageTrigger');
+    const languageTriggerLabel = document.getElementById('languageTriggerLabel');
+    const languageDropdown = document.getElementById('languageDropdown');
     const showSelfLoops = document.getElementById('showSelfLoops');
     const showOutputs = document.getElementById('showOutputs');
     const showEventNames = document.getElementById('showEventNames');
@@ -82,7 +86,27 @@ const kernelEditor = document.getElementById('kernelEditor');
 const brokerWindowClose = document.getElementById('brokerWindowClose');
 const kernelWindowClose = document.getElementById('kernelWindowClose');
 const brokerWindowToggle = document.getElementById('brokerWindowToggle');
-const kernelWindowToggle = document.getElementById('kernelWindowToggle');
+    const kernelWindowToggle = document.getElementById('kernelWindowToggle');
+
+    const appTitle = document.getElementById('appTitle');
+    const appSubtitle = document.getElementById('appSubtitle');
+    const brokerLauncherTitle = document.getElementById('brokerLauncherTitle');
+    const brokerLauncherSub = document.getElementById('brokerLauncherSub');
+    const kernelLauncherTitle = document.getElementById('kernelLauncherTitle');
+    const kernelLauncherSub = document.getElementById('kernelLauncherSub');
+    const settingsTitle = document.getElementById('settingsTitle');
+    const semanticTitle = document.getElementById('semanticTitle');
+    const footerHint = document.getElementById('footerHint');
+    const footerLicense = document.getElementById('footerLicense');
+    const languageOptionIt = document.getElementById('languageOptionIt');
+    const languageOptionEn = document.getElementById('languageOptionEn');
+    const showSelfLoopsLabel = document.getElementById('showSelfLoopsLabel');
+    const showOutputsLabel = document.getElementById('showOutputsLabel');
+    const showEventNamesLabel = document.getElementById('showEventNamesLabel');
+    const showTransactionsLabel = document.getElementById('showTransactionsLabel');
+    const showReachableCascadeLabel = document.getElementById('showReachableCascadeLabel');
+    const showUnusedLabel = document.getElementById('showUnusedLabel');
+    const spacingRangeLabel = document.getElementById('spacingRangeLabel');
 
     const NS = 'http://www.w3.org/2000/svg';
     const SVG_FONT_STACK = 'Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif';
@@ -104,6 +128,411 @@ const kernelWindowToggle = document.getElementById('kernelWindowToggle');
     const CAMERA_DISTANCE_3D = 1100;
     const SPHERE_RADIUS_3D = 36;
     const SCENE_LIGHT = { x: -0.7, y: -0.85, z: 0.55 };
+
+    const I18N_STORAGE_KEY = 'smt-language';
+    const SUPPORTED_LANGUAGES = ['it', 'en'];
+    const TRANSLATIONS = {
+      it: {
+        documentTitle: 'SMT visualizer',
+        appTitle: 'SMT visualizer',
+        appSubtitle: 'Incolla <b>BrokerStateMachine</b> e <b>StateMachine</b>. La pagina estrae stati, input event, output function e transizioni, poi genera un diagramma leggibile con layout automatico e nodi trascinabili.',
+        brokerXml: 'Broker XML',
+        kernelXml: 'Kernel XML',
+        xmlLauncherSub: 'Apri il file o modifica il contenuto in una finestra dedicata.',
+        settings: 'impostazioni',
+        semanticValidation: 'validazione semantica',
+        semanticPlaceholder: 'Carica Broker XML e Kernel XML per vedere i controlli strutturali della macchina.',
+        footerHint: 'Suggerimento: dopo il render puoi <b>trascinare gli stati</b> per rifinire manualmente lo spacing. Le curve e le etichette si aggiornano in tempo reale.',
+        footerLicense: 'Licenza: <b>Creative Commons BY 4.0</b> by <a class="footer-link" href="https://github.com/PhantoNull/smt-visualizer" target="_blank" rel="noopener noreferrer">PhantoNull</a>.',
+        showSelfLoops: 'mostra self-loop',
+        showOutputs: 'mostra output',
+        showEventNames: 'mostra nomi eventi',
+        showTransitions: 'mostra transazioni',
+        showReachableCascade: 'mostra i nodi raggiungibili discendenti al passaggio del mouse su un nodo',
+        showUnused: 'mostra stati non raggiungibili',
+        nodeSpacing: 'spaziatura nodi',
+        noMachineLoaded: 'Nessuna macchina caricata',
+        machineMetaEmpty: 'Incolla i due XML o apri i file corrispondenti.',
+        editMode: "MODALITA' MODIFICA",
+        newStateMachine: 'Nuova state machine',
+        cleanupUnused: 'Rimuovi eventi e output non utilizzati',
+        zoomIn: 'Zoom in',
+        zoomOut: 'Zoom out',
+        exportPng: 'Esporta PNG',
+        resetLayout: 'Reset posizione nodi',
+        toggleEditMode: 'Attiva/disattiva modalita modifica',
+        render2d: 'Torna a modalita 2D',
+        render3d: 'Passa a modalita 3D',
+        stopRotation: 'Stop rotazione',
+        resumeRotation: 'Riprendi rotazione',
+        stopAutoRotation: 'Ferma rotazione automatica',
+        resumeAutoRotation: 'Riprendi rotazione automatica',
+        addState: 'Aggiungi Stato',
+        summaryTitle: 'Riepilogo nodo',
+        closePopup: 'Chiudi popup',
+        editDialogTitle: 'Modalita modifica',
+        xmlEditorReady: 'Editor XML pronto.',
+        xmlWindowSubtitle: 'Finestra trascinabile e ridimensionabile.',
+        collapseSettings: 'Contrai impostazioni',
+        expandSettings: 'Espandi impostazioni',
+        collapseSemantic: 'Contrai validazione semantica',
+        expandSemantic: 'Espandi validazione semantica',
+        collapseLegend: 'Contrai legenda',
+        expandLegend: 'Espandi legenda',
+        collapseBrokerEditor: 'Contrai editor Broker XML',
+        expandBrokerEditor: 'Espandi editor Broker XML',
+        collapseKernelEditor: 'Contrai editor Kernel XML',
+        expandKernelEditor: 'Espandi editor Kernel XML',
+        editBrokerXml: 'Modifica Broker XML',
+        saveBrokerXml: 'Salva Broker XML',
+        openBrokerFile: 'Apri file Broker XML',
+        editKernelXml: 'Modifica Kernel XML',
+        saveKernelXml: 'Salva Kernel XML',
+        openKernelFile: 'Apri file Kernel XML',
+        noneLoaded: 'Nessun contenuto caricato.',
+        xmlLoadedStatus: '{lines} righe caricate - {chars} caratteri{source}',
+        xmlInvalidStatus: 'XML non valido{line}{column}{source}',
+        xmlValid: 'XML valido - {lines} righe',
+        xmlInvalid: 'XML non valido{line}{column}: {message}',
+        linePart: ' - linea {line}',
+        columnPart: ', colonna {column}',
+        sourceDemo: 'Origine: demo incorporato',
+        sourceGenerated: 'Origine: generato nella pagina',
+        sourceManual: 'Origine: testo modificato nella pagina',
+        sourceFile: 'Origine file: {name}',
+        machineIdPlaceholder: 'ID macchina',
+        machineNamePlaceholder: 'Nome macchina',
+        notAvailableShort: 'n/d',
+        machineMetaLine: 'Versione kernel: {version} - Stato iniziale: {initial} - Vista {mode}{interaction}',
+        machineMetaInteraction3d: ' con rotazione mouse',
+        machineMetaInteraction2d: ' con drag&drop attivo',
+        languageIt: '\uD83C\uDDEE\uD83C\uDDF9',
+        languageEn: '\uD83C\uDDEC\uD83C\uDDE7',
+        localeCode: 'it-IT',
+        confirmDeleteTitle: 'Conferma cancellazione',
+        cancel: 'Annulla',
+        confirm: 'Conferma',
+        semanticPendingStatus: 'in attesa',
+        semanticInvalidStatusLabel: 'xml non valido',
+        semanticErrorsCount: '{count} errori',
+        semanticWarningsCount: '{count} warning',
+        semanticOkShort: 'ok',
+        semanticGroupErrors: 'Errori',
+        semanticGroupWarnings: 'Warning',
+        semanticGroupInfos: 'Info',
+        semanticGroupOutcome: 'Esito',
+        semanticNoInfo: 'Nessuna informazione disponibile.',
+        semanticNoIssues: 'Nessuna anomalia semantica rilevata.',
+        semanticIssueBrokerStateDuplicate: 'Broker XML contiene lo stato {value} {count} volte.',
+        semanticIssueKernelStateDuplicate: 'Kernel XML contiene lo stato {value} {count} volte.',
+        semanticIssueKernelTransitionDuplicate: 'Kernel XML contiene la transizione {value} {count} volte.',
+        semanticIssueBrokerOutputDuplicate: "Broker XML contiene l'output {value} {count} volte.",
+        semanticIssueBrokerEventDuplicate: "Broker XML contiene l'evento {value} con {count} definizioni.",
+        semanticIssueIdsMismatch: 'Broker ID ({brokerId}) e Kernel ID ({kernelId}) non coincidono.',
+        semanticIssueFsmIdsMismatch: 'Broker fsmId ({fsmId}) e Kernel ID ({kernelId}) non coincidono.',
+        semanticIssueNoKernelInitial: 'Kernel XML non definisce alcuno stato iniziale.',
+        semanticIssueManyKernelInitial: 'Kernel XML definisce {count} stati iniziali.',
+        semanticIssueNoBrokerInitial: 'Broker XML non definisce alcuno stato iniziale.',
+        semanticIssueManyBrokerInitial: 'Broker XML definisce {count} stati iniziali.',
+        semanticIssueMissingCurrentState: 'La transizione {id} usa CurrentState {state} non presente nel Kernel XML.',
+        semanticIssueMissingNextState: 'La transizione {id} usa NextState {state} non presente nel Kernel XML.',
+        semanticIssueMissingInputEvent: 'La transizione {id} usa InputEvent {eventId} non presente nel Broker XML.',
+        semanticIssueMissingOutput: 'La transizione {id} usa OutputFunction {outputId} non presente nel Broker XML.',
+        semanticIssueBrokerOnlyState: 'Lo stato {stateId} esiste nel Broker XML ma non nel Kernel XML.',
+        semanticIssueKernelOnlyState: 'Lo stato {stateId} esiste nel Kernel XML ma non nel Broker XML.',
+        semanticIssueFinalHasOutgoing: 'Lo stato finale {stateId} ha {count} transizioni uscenti.',
+        semanticIssueUnreachableState: 'Lo stato {stateId} non è raggiungibile dallo stato iniziale.',
+        cleanupCompleted: 'Pulizia broker completata',
+        cleanupReportTitle: 'Pulizia broker completata',
+        cleanupReportSubtitle: 'Report degli InputEvent e OutputFunction rimossi dal Broker XML perché non più referenziati da alcuna transizione.',
+        cleanupRemovedInputEvents: 'InputEvent rimossi',
+        cleanupRemovedOutputs: 'OutputFunction rimossi',
+        cleanupNoRemovedInputEvents: 'Nessun InputEvent rimosso.',
+        cleanupNoRemovedOutputs: 'Nessun OutputFunction rimosso.',
+        loadBrokerKernelFirst: 'Carica prima Broker XML e Kernel XML',
+        brokerCleanupFailed: 'Pulizia broker fallita: {message}',
+        undoPageOnly: 'Undo salvato solo in pagina',
+        redoPageOnly: 'Redo salvato solo in pagina',
+        newMachineSubtitle: 'Inserisci ID e nome della nuova macchina. Verranno creati Broker e Kernel con un solo stato iniziale.',
+        newMachineDefaultName: 'Nuova state machine',
+        createMachine: 'Crea macchina',
+        machineIdNameRequired: 'ID e nome macchina sono obbligatori',
+        machineUpdateFailed: 'Aggiornamento macchina fallito: {message}',
+        stateEditTitle: 'Modifica stato',
+        stateAddTitle: 'Aggiungi stato',
+        stateEditSubtitle: 'Aggiorna ID, nome e flag del nodo selezionato.',
+        stateAddSubtitle: 'Crea un nuovo stato e aggiungilo a broker e kernel.',
+        stateIdLabel: 'ID stato',
+        stateNameLabel: 'Nome stato',
+        stateInitialLabel: 'iniziale',
+        stateFinalLabel: 'finale',
+        stateFinalWarning: 'Settare come stato finale cancellerà tutte le transazioni da questo nodo.',
+        saveChanges: 'Salva modifiche',
+        stateIdNameRequired: 'ID e nome stato sono obbligatori',
+        duplicateStateId: 'Esiste già uno stato con ID {id}',
+        stateUpdateFailed: 'Modifica stato fallita: {message}',
+        deleteStateConfirm: 'Questa operazione cancellerà lo stato {stateId} da tutta la macchina, incluse tutte le transizioni collegate. Vuoi continuare?',
+        deleteStateFailed: 'Cancellazione stato fallita: {message}',
+        transitionEditTitle: 'Modifica transizioni',
+        transitionAddTitle: 'Aggiungi transizione',
+        transitionConnectionSubtitle: 'Connessione {from} -> {to}',
+        transitionCreateSubtitle: 'Crea una nuova transizione scegliendo stato, evento e output.',
+        transitionNewConnectionSubtitle: 'Nuova transizione {from} -> {to}',
+        transitionGroupTitle: 'Gruppo transizioni',
+        add: 'Aggiungi',
+        saveGroup: 'Salva gruppo',
+        createTransition: 'Crea transizione',
+        transitionEmptyGroup: 'Nessuna transizione nel gruppo.',
+        transitionIdLabel: 'ID transizione',
+        fromStateLabel: 'Stato sorgente',
+        toStateLabel: 'Stato destinazione',
+        inputEventSection: 'Input Event',
+        inputEventIdLabel: 'Input event ID',
+        newInputEventOption: 'Nuovo input event...',
+        newInputEventIdLabel: 'Nuovo input event ID',
+        inputEventNameLabel: 'Input event nome',
+        outputSection: 'Output',
+        outputIdLabel: 'Output ID',
+        newOutputOption: 'Nuovo output...',
+        newOutputIdLabel: 'Nuovo output ID',
+        outputNameLabel: 'Output nome',
+        removeTransition: 'Rimuovi transizione',
+        transitionRowTitle: 'Transizione {id}',
+        transitionCountSingle: '1 transizione nel gruppo',
+        transitionCountMultiple: '{count} transizioni nel gruppo',
+        transitionRequiredFields: 'Ogni transizione richiede ID, stato sorgente, stato destinazione, input event e output',
+        duplicateTransitionId: 'Esiste già una transizione con ID {id}',
+        duplicateInputEventId: 'Esiste già un InputEvent con ID {id}',
+        duplicateOutputId: 'Esiste già un OutputFunction con ID {id}',
+        transitionNeedAtLeastOne: 'Inserisci almeno una transizione',
+        transitionInvalidStateRef: 'La transizione fa riferimento a uno stato inesistente',
+        transitionUpdateFailed: 'Modifica transizioni fallita: {message}',
+        deleteTransitionConfirm: 'Questa operazione cancellerà la transizione {from} -> {to} da tutta la macchina, comprese tutte le varianti raggruppate su quel collegamento. Vuoi continuare?',
+        deleteTransitionFailed: 'Cancellazione transizioni fallita: {message}',
+        editStateAction: 'Modifica stato',
+        deleteStateAction: 'Cancella stato',
+        editTransitionsAction: 'Modifica transizioni',
+        deleteTransitionsAction: 'Cancella transizioni',
+        groupedTransitionsHeader: '{count} transizioni raggruppate',
+        transitionHeaderSingle: 'Transizione',
+        summaryNoDirectTransitions: 'Nessuna transizione diretta in uscita.',
+        summaryReachability: '{direct} transizioni dirette - {reachable} nodi direttamente e indirettamente raggiungibili',
+        statsNote: 'Stati: {states} - transizioni: {transitions} - archi mostrati: {edges}',
+        semanticAvailableWhenValid: 'Validazione semantica disponibile quando Broker XML e Kernel XML sono validi.',
+        legendTitle: 'Legenda',
+        finalStatesLegend: 'Stati finali:',
+        noneLabel: 'nessuno',
+        outputsLegend: 'Output:',
+        duplicateInputEventsLegend: 'Input event con stesso ID:',
+        legendEdgeHint: 'Le etichette degli archi sono compattate automaticamente; passa il mouse sopra un box per vedere tutto il dettaglio.'
+        ,
+        exportPngFailed: 'Export PNG fallito: {message}',
+        readBrokerFailed: 'Lettura Broker XML fallita: {message}',
+        readKernelFailed: 'Lettura Kernel XML fallita: {message}',
+        saveBrokerFailed: 'Salvataggio Broker XML fallito: {message}',
+        saveKernelFailed: 'Salvataggio Kernel XML fallito: {message}'
+      },
+      en: {
+        documentTitle: 'SMT visualizer',
+        appTitle: 'SMT visualizer',
+        appSubtitle: 'Paste <b>BrokerStateMachine</b> and <b>StateMachine</b>. The page extracts states, input events, output functions and transitions, then renders a readable diagram with automatic layout and draggable nodes.',
+        brokerXml: 'Broker XML',
+        kernelXml: 'Kernel XML',
+        xmlLauncherSub: 'Open the file or edit its content in a dedicated window.',
+        settings: 'settings',
+        semanticValidation: 'semantic validation',
+        semanticPlaceholder: 'Load Broker XML and Kernel XML to view structural checks for the state machine.',
+        footerHint: 'Hint: after rendering you can <b>drag states</b> to refine spacing manually. Curves and labels update in real time.',
+        footerLicense: 'License: <b>Creative Commons BY 4.0</b> by <a class="footer-link" href="https://github.com/PhantoNull/smt-visualizer" target="_blank" rel="noopener noreferrer">PhantoNull</a>.',
+        showSelfLoops: 'show self-loops',
+        showOutputs: 'show outputs',
+        showEventNames: 'show event names',
+        showTransitions: 'show transitions',
+        showReachableCascade: 'show descendant reachable nodes when hovering a node',
+        showUnused: 'show unreachable states',
+        nodeSpacing: 'node spacing',
+        noMachineLoaded: 'No machine loaded',
+        machineMetaEmpty: 'Paste the two XML files or open the corresponding files.',
+        editMode: 'EDIT MODE',
+        newStateMachine: 'New state machine',
+        cleanupUnused: 'Remove unused events and outputs',
+        zoomIn: 'Zoom in',
+        zoomOut: 'Zoom out',
+        exportPng: 'Export PNG',
+        resetLayout: 'Reset node positions',
+        toggleEditMode: 'Toggle edit mode',
+        render2d: 'Switch to 2D mode',
+        render3d: 'Switch to 3D mode',
+        stopRotation: 'Stop rotation',
+        resumeRotation: 'Resume rotation',
+        stopAutoRotation: 'Stop auto rotation',
+        resumeAutoRotation: 'Resume auto rotation',
+        addState: 'Add State',
+        summaryTitle: 'Node summary',
+        closePopup: 'Close popup',
+        editDialogTitle: 'Edit mode',
+        xmlEditorReady: 'XML editor ready.',
+        xmlWindowSubtitle: 'Draggable and resizable window.',
+        collapseSettings: 'Collapse settings',
+        expandSettings: 'Expand settings',
+        collapseSemantic: 'Collapse semantic validation',
+        expandSemantic: 'Expand semantic validation',
+        collapseLegend: 'Collapse legend',
+        expandLegend: 'Expand legend',
+        collapseBrokerEditor: 'Collapse Broker XML editor',
+        expandBrokerEditor: 'Expand Broker XML editor',
+        collapseKernelEditor: 'Collapse Kernel XML editor',
+        expandKernelEditor: 'Expand Kernel XML editor',
+        editBrokerXml: 'Edit Broker XML',
+        saveBrokerXml: 'Save Broker XML',
+        openBrokerFile: 'Open Broker XML file',
+        editKernelXml: 'Edit Kernel XML',
+        saveKernelXml: 'Save Kernel XML',
+        openKernelFile: 'Open Kernel XML file',
+        noneLoaded: 'No content loaded.',
+        xmlLoadedStatus: '{lines} loaded lines - {chars} characters{source}',
+        xmlInvalidStatus: 'Invalid XML{line}{column}{source}',
+        xmlValid: 'Valid XML - {lines} lines',
+        xmlInvalid: 'Invalid XML{line}{column}: {message}',
+        linePart: ' - line {line}',
+        columnPart: ', column {column}',
+        sourceDemo: 'Source: bundled demo',
+        sourceGenerated: 'Source: generated in page',
+        sourceManual: 'Source: text edited in page',
+        sourceFile: 'File source: {name}',
+        machineIdPlaceholder: 'Machine ID',
+        machineNamePlaceholder: 'Machine name',
+        notAvailableShort: 'n/a',
+        machineMetaLine: 'Kernel version: {version} - Initial state: {initial} - {mode} view{interaction}',
+        machineMetaInteraction3d: ' with mouse rotation',
+        machineMetaInteraction2d: ' with drag & drop enabled',
+        languageIt: '\uD83C\uDDEE\uD83C\uDDF9',
+        languageEn: '\uD83C\uDDEC\uD83C\uDDE7',
+        localeCode: 'en-US',
+        confirmDeleteTitle: 'Delete confirmation',
+        cancel: 'Cancel',
+        confirm: 'Confirm',
+        semanticPendingStatus: 'pending',
+        semanticInvalidStatusLabel: 'invalid xml',
+        semanticErrorsCount: '{count} errors',
+        semanticWarningsCount: '{count} warnings',
+        semanticOkShort: 'ok',
+        semanticGroupErrors: 'Errors',
+        semanticGroupWarnings: 'Warnings',
+        semanticGroupInfos: 'Info',
+        semanticGroupOutcome: 'Outcome',
+        semanticNoInfo: 'No information available.',
+        semanticNoIssues: 'No semantic anomalies detected.',
+        semanticIssueBrokerStateDuplicate: 'Broker XML contains state {value} {count} times.',
+        semanticIssueKernelStateDuplicate: 'Kernel XML contains state {value} {count} times.',
+        semanticIssueKernelTransitionDuplicate: 'Kernel XML contains transition {value} {count} times.',
+        semanticIssueBrokerOutputDuplicate: 'Broker XML contains output {value} {count} times.',
+        semanticIssueBrokerEventDuplicate: 'Broker XML contains event {value} with {count} definitions.',
+        semanticIssueIdsMismatch: 'Broker ID ({brokerId}) and Kernel ID ({kernelId}) do not match.',
+        semanticIssueFsmIdsMismatch: 'Broker fsmId ({fsmId}) and Kernel ID ({kernelId}) do not match.',
+        semanticIssueNoKernelInitial: 'Kernel XML does not define any initial state.',
+        semanticIssueManyKernelInitial: 'Kernel XML defines {count} initial states.',
+        semanticIssueNoBrokerInitial: 'Broker XML does not define any initial state.',
+        semanticIssueManyBrokerInitial: 'Broker XML defines {count} initial states.',
+        semanticIssueMissingCurrentState: 'Transition {id} uses CurrentState {state} not present in Kernel XML.',
+        semanticIssueMissingNextState: 'Transition {id} uses NextState {state} not present in Kernel XML.',
+        semanticIssueMissingInputEvent: 'Transition {id} uses InputEvent {eventId} not present in Broker XML.',
+        semanticIssueMissingOutput: 'Transition {id} uses OutputFunction {outputId} not present in Broker XML.',
+        semanticIssueBrokerOnlyState: 'State {stateId} exists in Broker XML but not in Kernel XML.',
+        semanticIssueKernelOnlyState: 'State {stateId} exists in Kernel XML but not in Broker XML.',
+        semanticIssueFinalHasOutgoing: 'Final state {stateId} has {count} outgoing transitions.',
+        semanticIssueUnreachableState: 'State {stateId} is not reachable from the initial state.',
+        cleanupCompleted: 'Broker cleanup completed',
+        cleanupReportTitle: 'Broker cleanup completed',
+        cleanupReportSubtitle: 'Report of InputEvent and OutputFunction entries removed from Broker XML because no transition references them anymore.',
+        cleanupRemovedInputEvents: 'Removed InputEvent entries',
+        cleanupRemovedOutputs: 'Removed OutputFunction entries',
+        cleanupNoRemovedInputEvents: 'No InputEvent entries removed.',
+        cleanupNoRemovedOutputs: 'No OutputFunction entries removed.',
+        loadBrokerKernelFirst: 'Load Broker XML and Kernel XML first',
+        brokerCleanupFailed: 'Broker cleanup failed: {message}',
+        undoPageOnly: 'Undo saved only in page',
+        redoPageOnly: 'Redo saved only in page',
+        newMachineSubtitle: 'Enter the new machine ID and name. Broker and Kernel will be created with a single initial state.',
+        newMachineDefaultName: 'New state machine',
+        createMachine: 'Create machine',
+        machineIdNameRequired: 'Machine ID and name are required',
+        machineUpdateFailed: 'Machine update failed: {message}',
+        stateEditTitle: 'Edit state',
+        stateAddTitle: 'Add state',
+        stateEditSubtitle: 'Update ID, name and flags of the selected node.',
+        stateAddSubtitle: 'Create a new state and add it to broker and kernel.',
+        stateIdLabel: 'State ID',
+        stateNameLabel: 'State name',
+        stateInitialLabel: 'initial',
+        stateFinalLabel: 'final',
+        stateFinalWarning: 'Setting this as a final state will remove all outgoing transitions from this node.',
+        saveChanges: 'Save changes',
+        stateIdNameRequired: 'State ID and name are required',
+        duplicateStateId: 'A state with ID {id} already exists',
+        stateUpdateFailed: 'State update failed: {message}',
+        deleteStateConfirm: 'This will delete state {stateId} from the whole machine, including all related transitions. Continue?',
+        deleteStateFailed: 'State deletion failed: {message}',
+        transitionEditTitle: 'Edit transitions',
+        transitionAddTitle: 'Add transition',
+        transitionConnectionSubtitle: 'Connection {from} -> {to}',
+        transitionCreateSubtitle: 'Create a new transition by choosing state, event and output.',
+        transitionNewConnectionSubtitle: 'New transition {from} -> {to}',
+        transitionGroupTitle: 'Transition group',
+        add: 'Add',
+        saveGroup: 'Save group',
+        createTransition: 'Create transition',
+        transitionEmptyGroup: 'No transitions in this group.',
+        transitionIdLabel: 'Transition ID',
+        fromStateLabel: 'Source state',
+        toStateLabel: 'Destination state',
+        inputEventSection: 'Input Event',
+        inputEventIdLabel: 'Input event ID',
+        newInputEventOption: 'New input event...',
+        newInputEventIdLabel: 'New input event ID',
+        inputEventNameLabel: 'Input event name',
+        outputSection: 'Output',
+        outputIdLabel: 'Output ID',
+        newOutputOption: 'New output...',
+        newOutputIdLabel: 'New output ID',
+        outputNameLabel: 'Output name',
+        removeTransition: 'Remove transition',
+        transitionRowTitle: 'Transition {id}',
+        transitionCountSingle: '1 transition in group',
+        transitionCountMultiple: '{count} transitions in group',
+        transitionRequiredFields: 'Each transition requires ID, source state, destination state, input event and output',
+        duplicateTransitionId: 'A transition with ID {id} already exists',
+        duplicateInputEventId: 'An InputEvent with ID {id} already exists',
+        duplicateOutputId: 'An OutputFunction with ID {id} already exists',
+        transitionNeedAtLeastOne: 'Enter at least one transition',
+        transitionInvalidStateRef: 'The transition references a missing state',
+        transitionUpdateFailed: 'Transition update failed: {message}',
+        deleteTransitionConfirm: 'This will delete transition {from} -> {to} from the whole machine, including all grouped variants on that connection. Continue?',
+        deleteTransitionFailed: 'Transition deletion failed: {message}',
+        editStateAction: 'Edit state',
+        deleteStateAction: 'Delete state',
+        editTransitionsAction: 'Edit transitions',
+        deleteTransitionsAction: 'Delete transitions',
+        groupedTransitionsHeader: '{count} grouped transitions',
+        transitionHeaderSingle: 'Transition',
+        summaryNoDirectTransitions: 'No direct outgoing transitions.',
+        summaryReachability: '{direct} direct transitions - {reachable} directly and indirectly reachable nodes',
+        statsNote: 'States: {states} - transitions: {transitions} - displayed edges: {edges}',
+        semanticAvailableWhenValid: 'Semantic validation is available when Broker XML and Kernel XML are valid.',
+        legendTitle: 'Legend',
+        finalStatesLegend: 'Final states:',
+        noneLabel: 'none',
+        outputsLegend: 'Outputs:',
+        duplicateInputEventsLegend: 'Input events with the same ID:',
+        legendEdgeHint: 'Edge labels are compacted automatically; hover a box to view full details.'
+        ,
+        exportPngFailed: 'PNG export failed: {message}',
+        readBrokerFailed: 'Broker XML read failed: {message}',
+        readKernelFailed: 'Kernel XML read failed: {message}',
+        saveBrokerFailed: 'Broker XML save failed: {message}',
+        saveKernelFailed: 'Kernel XML save failed: {message}'
+      }
+    };
 
     let graph = null;
     let dragged = null;
@@ -128,6 +557,12 @@ let semanticCollapsed = false;
     let kernelFileHandle = null;
     let brokerSourceLabel = '';
     let kernelSourceLabel = '';
+    let currentLanguage = 'it';
+    try {
+      const savedLanguage = localStorage.getItem(I18N_STORAGE_KEY);
+      if (SUPPORTED_LANGUAGES.includes(savedLanguage)) currentLanguage = savedLanguage;
+    } catch {
+    }
     let editUndoHistory = [];
     let editRedoHistory = [];
     let lastParsedBroker = null;
@@ -166,6 +601,85 @@ let semanticCollapsed = false;
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;');
+    }
+
+    function t(key, vars = {}) {
+      const dictionary = TRANSLATIONS[currentLanguage] || TRANSLATIONS.it;
+      const fallback = TRANSLATIONS.it;
+      const template = dictionary[key] ?? fallback[key] ?? key;
+      return String(template).replace(/\{(\w+)\}/g, (_, token) => String(vars[token] ?? ''));
+    }
+
+    function setLanguage(nextLanguage) {
+      currentLanguage = SUPPORTED_LANGUAGES.includes(nextLanguage) ? nextLanguage : 'it';
+      try {
+        localStorage.setItem(I18N_STORAGE_KEY, currentLanguage);
+      } catch {
+      }
+      applyLanguage();
+    }
+
+    function currentLocale() {
+      return t('localeCode');
+    }
+
+    function localizedError(key, error) {
+      return t(key, { message: error?.message || error });
+    }
+
+    function applyI18nToDom(root = document) {
+      root.querySelectorAll('[data-i18n]').forEach(node => {
+        node.textContent = t(node.dataset.i18n);
+      });
+      root.querySelectorAll('[data-i18n-html]').forEach(node => {
+        node.innerHTML = t(node.dataset.i18nHtml);
+      });
+      root.querySelectorAll('[data-i18n-placeholder]').forEach(node => {
+        node.setAttribute('placeholder', t(node.dataset.i18nPlaceholder));
+      });
+      root.querySelectorAll('[data-i18n-attrs]').forEach(node => {
+        node.dataset.i18nAttrs
+          .split(';')
+          .map(part => part.trim())
+          .filter(Boolean)
+          .forEach(binding => {
+            const [attr, key] = binding.split(':').map(part => part.trim());
+            if (!attr || !key) return;
+            node.setAttribute(attr, t(key));
+          });
+      });
+    }
+
+    function applyLanguage() {
+      document.documentElement.lang = currentLanguage;
+      document.title = t('documentTitle');
+      if (languageTriggerLabel) languageTriggerLabel.textContent = t(currentLanguage === 'it' ? 'languageIt' : 'languageEn');
+      applyI18nToDom();
+      languageOptionIt?.classList.toggle('active', currentLanguage === 'it');
+      languageOptionEn?.classList.toggle('active', currentLanguage === 'en');
+      if (summaryTitle && !summaryPanel.classList.contains('open')) summaryTitle.textContent = t('summaryTitle');
+      if (editTitle && !editPanel.classList.contains('open')) editTitle.textContent = t('editDialogTitle');
+      if (semanticBody && semanticStatus?.textContent === t('semanticPendingStatus')) semanticBody.textContent = t('semanticPlaceholder');
+      if (brokerXmlStatus) brokerXmlStatus.textContent = t('xmlEditorReady');
+      if (kernelXmlStatus) kernelXmlStatus.textContent = t('xmlEditorReady');
+      updateRenderModeUI();
+      updateSettingsCollapsedState();
+      updateSemanticCollapsedState();
+      updateLegendCollapsedState();
+      updateXmlWindowCollapsedState('broker');
+      updateXmlWindowCollapsedState('kernel');
+      syncMachineHeader();
+      updateXmlSourceStatus('broker', brokerInput.value);
+      updateXmlSourceStatus('kernel', kernelInput.value);
+      if (graph) rerenderGraph();
+      if (graph && lastParsedBroker && lastParsedKernel) {
+        renderSemanticValidation(lastParsedBroker, lastParsedKernel, graph);
+      }
+    }
+
+    function setLanguageMenuOpen(open) {
+      languageMenu?.classList.toggle('open', !!open);
+      languageTrigger?.setAttribute('aria-expanded', open ? 'true' : 'false');
     }
 
     function hashText(value = '') {
@@ -224,7 +738,7 @@ let semanticCollapsed = false;
       errorBox.style.display = 'block';
     }
 
-    function updateSemanticValidationPlaceholder(message, status = 'in attesa', statusClass = '') {
+    function updateSemanticValidationPlaceholder(message, status = t('semanticPendingStatus'), statusClass = '') {
       if (!semanticStatus || !semanticBody) return;
       semanticStatus.textContent = status;
       semanticStatus.className = `semantic-status${statusClass ? ` ${statusClass}` : ''}`;
@@ -239,15 +753,15 @@ let semanticCollapsed = false;
       if (renderModeBtn) {
         const is3d = renderMode === '3d';
         renderModeBtn.classList.toggle('active', is3d);
-        renderModeBtn.title = is3d ? 'Torna a modalita 2D' : 'Passa a modalita 3D';
+        renderModeBtn.title = is3d ? t('render2d') : t('render3d');
         renderModeBtn.setAttribute('aria-label', renderModeBtn.title);
       }
       if (renderModeLabel) renderModeLabel.textContent = renderMode === '3d' ? '3D' : '2D';
       if (sceneRotateBtn) {
         const is3d = renderMode === '3d';
         sceneRotateBtn.classList.toggle('active', is3d);
-        sceneRotateBtn.textContent = sceneAutoRotate ? 'Stop rotazione' : 'Riprendi rotazione';
-        sceneRotateBtn.title = sceneAutoRotate ? 'Ferma rotazione automatica' : 'Riprendi rotazione automatica';
+        sceneRotateBtn.textContent = sceneAutoRotate ? t('stopRotation') : t('resumeRotation');
+        sceneRotateBtn.title = sceneAutoRotate ? t('stopAutoRotation') : t('resumeAutoRotation');
         sceneRotateBtn.setAttribute('aria-label', sceneRotateBtn.title);
       }
       if (sceneOrientation) sceneOrientation.classList.toggle('active', renderMode === '3d');
@@ -362,15 +876,19 @@ let semanticCollapsed = false;
       if (status) {
         if (!compact) {
           status.classList.remove('valid', 'invalid');
-          status.innerHTML = 'Nessun contenuto caricato.';
+          status.innerHTML = t('noneLoaded');
           return;
         }
         const diagnostic = extractXmlDiagnostic(compact);
         status.classList.toggle('valid', diagnostic.valid);
         status.classList.toggle('invalid', !diagnostic.valid);
         status.innerHTML = diagnostic.valid
-          ? `${lines} righe caricate - ${chars.toLocaleString('it-IT')} caratteri${sourceLabel ? `<br>${escapeHtml(sourceLabel)}` : ''}`
-          : `XML non valido${diagnostic.line ? ` - linea ${diagnostic.line}` : ''}${diagnostic.column ? `, colonna ${diagnostic.column}` : ''}${sourceLabel ? `<br>${escapeHtml(sourceLabel)}` : ''}`;
+        ? t('xmlLoadedStatus', { lines, chars: chars.toLocaleString(currentLocale()), source: sourceLabel ? `<br>${escapeHtml(sourceLabel)}` : '' })
+          : t('xmlInvalidStatus', {
+              line: diagnostic.line ? t('linePart', { line: diagnostic.line }) : '',
+              column: diagnostic.column ? t('columnPart', { column: diagnostic.column }) : '',
+              source: sourceLabel ? `<br>${escapeHtml(sourceLabel)}` : ''
+            });
       }
     }
 
@@ -408,19 +926,21 @@ let semanticCollapsed = false;
       getXmlPair(kind).window.classList.remove('open');
     }
 
-function updateXmlWindowCollapsedState(kind) {
-  const state = getXmlEditorState(kind);
-  if (state.element) state.element.classList.toggle('collapsed', state.collapsed);
-  if (state.element) {
+    function updateXmlWindowCollapsedState(kind) {
+      const state = getXmlEditorState(kind);
+      if (state.element) state.element.classList.toggle('collapsed', state.collapsed);
+      if (state.element) {
     if (state.collapsed) {
       state.element.style.height = '';
     } else {
       autoSizeXmlWindow(kind);
     }
-  }
-  if (state.toggle) {
-    state.toggle.setAttribute('data-collapsed', state.collapsed ? 'true' : 'false');
-    const label = state.collapsed ? `Espandi editor ${kind === 'broker' ? 'Broker' : 'Kernel'} XML` : `Contrai editor ${kind === 'broker' ? 'Broker' : 'Kernel'} XML`;
+      }
+      if (state.toggle) {
+        state.toggle.setAttribute('data-collapsed', state.collapsed ? 'true' : 'false');
+        const label = kind === 'broker'
+          ? (state.collapsed ? t('expandBrokerEditor') : t('collapseBrokerEditor'))
+          : (state.collapsed ? t('expandKernelEditor') : t('collapseKernelEditor'));
         state.toggle.setAttribute('aria-label', label);
         state.toggle.title = label;
       }
@@ -480,14 +1000,79 @@ function updateXmlWindowCollapsedState(kind) {
       }
 
       const raw = err.textContent.trim().replace(/\s+/g, ' ');
-      const lineMatch = raw.match(/line(?:a)?\s+(\d+)/i) || raw.match(/at line\s+(\d+)/i);
-      const colMatch = raw.match(/column\s+(\d+)/i) || raw.match(/col(?:onna)?\s+(\d+)/i);
+      const cleaned = raw
+        .replace(/This page contains the following errors:\s*/i, '')
+        .replace(/Below is a rendering of the page up to the first error\.?/i, '')
+        .replace(/Indirizzo:\s*file:[^ ]+/i, '')
+        .replace(/Address:\s*file:[^ ]+/i, '')
+        .replace(/Riga numero\s+\d+,\s*colonna\s+\d+:[\s\S]*$/i, '')
+        .replace(/Line Number\s+\d+,\s*Column\s+\d+:[\s\S]*$/i, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .replace(/\s*-\s*\^+$/g, '')
+        .replace(/\s+$/g, '');
+      const lineMatch = raw.match(/(?:on\s+line|at\s+line|linea|line|riga numero)\s+(\d+)/i);
+      const colMatch = raw.match(/(?:at\s+column|column|colonna|col)\s+(\d+)/i);
       return {
         valid: false,
-        message: raw.slice(0, 240),
+        message: localizeXmlParserMessage(cleaned || raw).slice(0, 240),
         line: lineMatch ? Number(lineMatch[1]) : null,
         column: colMatch ? Number(colMatch[1]) : null
       };
+    }
+
+    function localizeXmlParserMessage(message) {
+      let next = String(message || '').trim();
+      if (!next) return next;
+
+      const replacements = currentLanguage === 'it'
+        ? [
+            [/error on line\s+\d+\s+at column\s+\d+:\s*/gi, ''],
+            [/opening and ending tag mismatch/gi, 'tag di apertura e chiusura non corrispondenti'],
+            [/opening tag and ending tag mismatch/gi, 'tag di apertura e chiusura non corrispondenti'],
+            [/expected:/gi, 'Previsto:'],
+            [/expected one of/gi, 'Previsto uno tra'],
+            [/premature end of data in tag/gi, 'fine prematura dei dati nel tag'],
+            [/attributes construct error/gi, 'errore nella costruzione degli attributi'],
+            [/attvalue:\s*["']?\s*or\s*["']?\s*expected/gi, 'valore attributo non valido o mancante'],
+            [/extra content at the end of the document/gi, 'contenuto extra alla fine del documento'],
+            [/start tag expected, '<' not found/gi, "tag iniziale atteso, '<' non trovato"],
+            [/specification mandates value for attribute/gi, "la specifica richiede un valore per l'attributo"],
+            [/entityref:\s*expecting ';'/gi, "riferimento entità non valido, manca ';'"],
+            [/xml declaration allowed only at the start of the document/gi, "la dichiarazione XML è consentita solo all'inizio del documento"],
+            [/document is empty/gi, 'documento XML vuoto'],
+            [/undefined entity/gi, 'entità non definita'],
+            [/namespace prefix .* is not defined/gi, match => match.replace(/namespace prefix/i, 'prefisso namespace').replace(/is not defined/i, 'non è definito')],
+            [/tag corrispettivo mancante/gi, 'tag corrispettivo mancante'],
+            [/previsto:/gi, 'Previsto:']
+          ]
+        : [
+            [/errore interpretazione xml:\s*/gi, ''],
+            [/tag corrispettivo mancante/gi, 'missing matching tag'],
+            [/tag di apertura e chiusura non corrispondenti/gi, 'opening and ending tag mismatch'],
+            [/previsto uno tra/gi, 'expected one of'],
+            [/previsto:/gi, 'Expected:'],
+            [/fine prematura dei dati nel tag/gi, 'premature end of data in tag'],
+            [/errore nella costruzione degli attributi/gi, 'attributes construct error'],
+            [/valore attributo non valido o mancante/gi, 'invalid or missing attribute value'],
+            [/contenuto extra alla fine del documento/gi, 'extra content at the end of the document'],
+            [/tag iniziale atteso, '<' non trovato/gi, "start tag expected, '<' not found"],
+            [/la specifica richiede un valore per l'attributo/gi, 'specification mandates value for attribute'],
+            [/riferimento entità non valido, manca ';'/gi, "entity reference invalid, expecting ';'"],
+            [/la dichiarazione xml è consentita solo all'inizio del documento/gi, 'XML declaration allowed only at the start of the document'],
+            [/documento xml vuoto/gi, 'XML document is empty'],
+            [/entità non definita/gi, 'undefined entity'],
+            [/prefisso namespace .* non è definito/gi, match => match.replace(/prefisso namespace/i, 'namespace prefix').replace(/non è definito/i, 'is not defined')]
+          ];
+
+      replacements.forEach(([pattern, replacement]) => {
+        next = next.replace(pattern, replacement);
+      });
+
+      return next
+        .replace(/\s+/g, ' ')
+        .replace(/\s+([,.;:])/g, '$1')
+        .trim();
     }
 
     function compactKernelTransactions(text) {
@@ -603,9 +1188,13 @@ function updateXmlEditorPresentation(kind, text, diagnostic) {
   state.diagnostic = diagnostic;
   renderXmlGutter(kind, text, diagnostic);
   state.editor.readOnly = false;
-  state.status.textContent = diagnostic.valid
-    ? `XML valido - ${Math.max(1, text.split(/\r?\n/).length)} righe`
-    : `XML non valido${diagnostic.line ? ` - linea ${diagnostic.line}` : ''}${diagnostic.column ? `, colonna ${diagnostic.column}` : ''}: ${diagnostic.message}`;
+      state.status.textContent = diagnostic.valid
+        ? t('xmlValid', { lines: Math.max(1, text.split(/\r?\n/).length) })
+        : t('xmlInvalid', {
+            line: diagnostic.line ? t('linePart', { line: diagnostic.line }) : '',
+            column: diagnostic.column ? t('columnPart', { column: diagnostic.column }) : '',
+            message: diagnostic.message
+          });
   state.status.title = '';
   state.status.classList.toggle('valid', diagnostic.valid);
   state.status.classList.toggle('invalid', !diagnostic.valid);
@@ -825,8 +1414,8 @@ function refreshXmlEditorDiagnostics(kind) {
 
     function syncMachineHeader(model = graph) {
       if (!model) {
-        machineTitle.textContent = 'Nessuna macchina caricata';
-        machineMeta.textContent = 'Incolla i due XML o apri i file corrispondenti.';
+        machineTitle.textContent = t('noMachineLoaded');
+        machineMeta.textContent = t('machineMetaEmpty');
         machineHeaderEditor.classList.remove('active');
         machineTitle.style.display = '';
         return;
@@ -834,9 +1423,15 @@ function refreshXmlEditorDiagnostics(kind) {
 
       const machineId = model.kernel.id || model.broker.id || 'FSM';
       const machineName = model.kernel.name || model.broker.name || '';
-      const initialLabel = model.initial?.id || 'n/d';
+      const initialLabel = model.initial?.id || t('notAvailableShort');
       machineTitle.textContent = `${machineId} - ${machineName}`;
-      machineMeta.textContent = `Versione kernel: ${model.kernel.version || 'n/d'} - Stato iniziale: ${initialLabel} - Vista ${renderMode.toUpperCase()}${renderMode === '3d' ? ' con rotazione mouse' : ' con drag&drop attivo'}`;
+      const versionLabel = model.kernel.version || t('notAvailableShort');
+      machineMeta.textContent = t('machineMetaLine', {
+        version: versionLabel,
+        initial: initialLabel,
+        mode: renderMode.toUpperCase(),
+        interaction: renderMode === '3d' ? t('machineMetaInteraction3d') : t('machineMetaInteraction2d')
+      });
 
       machineHeaderSyncing = true;
       machineIdInput.value = machineId;
@@ -870,7 +1465,7 @@ function refreshXmlEditorDiagnostics(kind) {
 
     async function cleanupUnusedBrokerArtifacts() {
       if (!brokerInput.value.trim() || !kernelInput.value.trim()) {
-        showError('Carica prima Broker XML e Kernel XML');
+        showError(t('loadBrokerKernelFirst')); 
         return;
       }
 
@@ -885,29 +1480,29 @@ function refreshXmlEditorDiagnostics(kind) {
           broker.inputEvents = broker.inputEvents.filter(event => usedEventIds.has(event.id));
           broker.outputs = broker.outputs.filter(output => usedOutputIds.has(output.id));
         });
-        showXmlToast({ valid: true, label: 'Pulizia broker completata' });
+        showXmlToast({ valid: true, label: t('cleanupCompleted') });
         openEditPanel(
-          'Pulizia broker completata',
-          'Report degli InputEvent e OutputFunction rimossi dal Broker XML perché non più referenziati da alcuna transizione.',
+          t('cleanupReportTitle'),
+          t('cleanupReportSubtitle'),
           `
             <div class="cleanup-report">
               <div class="cleanup-report-section">
-                <h4 class="cleanup-report-title">InputEvent rimossi</h4>
+                <h4 class="cleanup-report-title">${t('cleanupRemovedInputEvents')}</h4>
                 ${removedEvents.length
                   ? `<ul class="cleanup-report-list">${removedEvents.map(event => `<li><code>${escapeHtml(event.id)}</code> ${escapeHtml(event.name)}</li>`).join('')}</ul>`
-                  : '<div class="summary-empty">Nessun InputEvent rimosso.</div>'}
+                  : `<div class="summary-empty">${t('cleanupNoRemovedInputEvents')}</div>`}
               </div>
               <div class="cleanup-report-section">
-                <h4 class="cleanup-report-title">OutputFunction rimossi</h4>
+                <h4 class="cleanup-report-title">${t('cleanupRemovedOutputs')}</h4>
                 ${removedOutputs.length
                   ? `<ul class="cleanup-report-list">${removedOutputs.map(output => `<li><code>${escapeHtml(output.id)}</code> ${escapeHtml(output.name)}</li>`).join('')}</ul>`
-                  : '<div class="summary-empty">Nessun OutputFunction rimosso.</div>'}
+                  : `<div class="summary-empty">${t('cleanupNoRemovedOutputs')}</div>`}
               </div>
             </div>
           `
         );
       } catch (err) {
-        showError(`Pulizia broker fallita: ${err.message || err}`);
+        showError(t('brokerCleanupFailed', { message: err.message || err }));
       }
     }
 
@@ -933,34 +1528,34 @@ function refreshXmlEditorDiagnostics(kind) {
     async function performUndo() {
       const snapshot = editUndoHistory.pop();
       updateEditModeUI();
-      await restoreHistorySnapshot(snapshot, editRedoHistory, 'Undo salvato solo in pagina');
+      await restoreHistorySnapshot(snapshot, editRedoHistory, t('undoPageOnly'));
     }
 
     async function performRedo() {
       const snapshot = editRedoHistory.pop();
       updateEditModeUI();
-      await restoreHistorySnapshot(snapshot, editUndoHistory, 'Redo salvato solo in pagina');
+      await restoreHistorySnapshot(snapshot, editUndoHistory, t('redoPageOnly'));
     }
 
     function openNewMachineDialog() {
       openEditPanel(
-        'Nuova state machine',
-        'Inserisci ID e nome della nuova macchina. Verranno creati Broker e Kernel con un solo stato iniziale.',
+        t('newStateMachine'),
+        t('newMachineSubtitle'),
         `
           <form id="newMachineForm">
             <div class="edit-grid">
               <div class="edit-field">
-                <label for="newMachineIdInput">ID macchina</label>
+                <label for="newMachineIdInput">${t('machineIdPlaceholder')}</label>
                 <input id="newMachineIdInput" name="machineId" value="FSM_NEW" />
               </div>
               <div class="edit-field">
-                <label for="newMachineNameInput">Nome macchina</label>
-                <input id="newMachineNameInput" name="machineName" value="New state machine" />
+                <label for="newMachineNameInput">${t('machineNamePlaceholder')}</label>
+                <input id="newMachineNameInput" name="machineName" value="${t('newMachineDefaultName')}" />
               </div>
             </div>
             <div class="edit-actions">
-              <button type="button" class="secondary" id="newMachineCancelBtn">Annulla</button>
-              <button type="submit">Crea macchina</button>
+              <button type="button" class="secondary" id="newMachineCancelBtn">${t('cancel')}</button>
+              <button type="submit">${t('createMachine')}</button>
             </div>
           </form>
         `
@@ -973,7 +1568,7 @@ function refreshXmlEditorDiagnostics(kind) {
         const nextId = String(form.get('machineId') || '').trim();
         const nextName = String(form.get('machineName') || '').trim();
         if (!nextId || !nextName) {
-          showError('ID e nome macchina sono obbligatori');
+          showError(t('machineIdNameRequired'));
           return;
         }
 
@@ -982,8 +1577,8 @@ function refreshXmlEditorDiagnostics(kind) {
         const seed = buildNewStateMachineXml(nextId, nextName);
         brokerFileHandle = null;
         kernelFileHandle = null;
-        setXmlSourceLabel('broker', 'Origine: generato nella pagina');
-        setXmlSourceLabel('kernel', 'Origine: generato nella pagina');
+        setXmlSourceLabel('broker', t('sourceGenerated'));
+        setXmlSourceLabel('kernel', t('sourceGenerated'));
         setXmlText('broker', seed.brokerText);
         setXmlText('kernel', seed.kernelText);
         renderAll();
@@ -996,7 +1591,7 @@ function refreshXmlEditorDiagnostics(kind) {
       const nextId = String(machineIdInput.value || '').trim();
       const nextName = String(machineNameInput.value || '').trim();
       if (!nextId || !nextName) {
-        showError('ID e nome macchina sono obbligatori');
+        showError(t('machineIdNameRequired'));
         syncMachineHeader(graph);
         return;
       }
@@ -1010,7 +1605,7 @@ function refreshXmlEditorDiagnostics(kind) {
           kernel.name = nextName;
         });
       } catch (err) {
-        showError(`Aggiornamento macchina fallito: ${err.message || err}`);
+        showError(t('machineUpdateFailed', { message: err.message || err }));
         syncMachineHeader(graph);
       }
     }
@@ -1508,6 +2103,7 @@ function refreshXmlEditorDiagnostics(kind) {
     function validateSemanticModel(broker, kernel, model) {
       const issues = [];
       const pushIssue = (severity, message) => issues.push({ severity, message });
+      const transitionLabel = id => id || '(no ID)';
 
       const brokerStateIds = new Set(broker.states.map(state => state.id).filter(Boolean));
       const kernelStateIds = new Set(kernel.states.map(state => state.id).filter(Boolean));
@@ -1516,69 +2112,59 @@ function refreshXmlEditorDiagnostics(kind) {
       const kernelInitials = kernel.states.filter(state => state.initial);
       const brokerInitials = broker.states.filter(state => state.initial);
 
-      countDuplicates(broker.states.map(state => state.id)).forEach(item => {
-        pushIssue('error', `Broker XML contiene lo stato ${item.value} ${item.count} volte.`);
-      });
-      countDuplicates(kernel.states.map(state => state.id)).forEach(item => {
-        pushIssue('error', `Kernel XML contiene lo stato ${item.value} ${item.count} volte.`);
-      });
-      countDuplicates(kernel.transitions.map(transition => transition.id)).forEach(item => {
-        pushIssue('error', `Kernel XML contiene la transizione ${item.value} ${item.count} volte.`);
-      });
-      countDuplicates(broker.outputs.map(output => output.id)).forEach(item => {
-        pushIssue('warn', `Broker XML contiene l'output ${item.value} ${item.count} volte.`);
-      });
-      countDuplicates(broker.inputEvents.map(event => event.id)).forEach(item => {
-        pushIssue('info', `Broker XML contiene l'evento ${item.value} con ${item.count} definizioni.`);
-      });
+      countDuplicates(broker.states.map(state => state.id)).forEach(item => pushIssue('error', t('semanticIssueBrokerStateDuplicate', item)));
+      countDuplicates(kernel.states.map(state => state.id)).forEach(item => pushIssue('error', t('semanticIssueKernelStateDuplicate', item)));
+      countDuplicates(kernel.transitions.map(transition => transition.id)).forEach(item => pushIssue('error', t('semanticIssueKernelTransitionDuplicate', item)));
+      countDuplicates(broker.outputs.map(output => output.id)).forEach(item => pushIssue('warn', t('semanticIssueBrokerOutputDuplicate', item)));
+      countDuplicates(broker.inputEvents.map(event => event.id)).forEach(item => pushIssue('info', t('semanticIssueBrokerEventDuplicate', item)));
 
       if (broker.id && kernel.id && broker.id !== kernel.id) {
-        pushIssue('warn', `Broker ID (${broker.id}) e Kernel ID (${kernel.id}) non coincidono.`);
+        pushIssue('warn', t('semanticIssueIdsMismatch', { brokerId: broker.id, kernelId: kernel.id }));
       }
       if (broker.fsmId && kernel.id && broker.fsmId !== kernel.id) {
-        pushIssue('warn', `Broker fsmId (${broker.fsmId}) e Kernel ID (${kernel.id}) non coincidono.`);
+        pushIssue('warn', t('semanticIssueFsmIdsMismatch', { fsmId: broker.fsmId, kernelId: kernel.id }));
       }
 
-      if (kernelInitials.length === 0) pushIssue('error', 'Kernel XML non definisce alcuno stato iniziale.');
-      if (kernelInitials.length > 1) pushIssue('error', `Kernel XML definisce ${kernelInitials.length} stati iniziali.`);
-      if (brokerInitials.length === 0) pushIssue('warn', 'Broker XML non definisce alcuno stato iniziale.');
-      if (brokerInitials.length > 1) pushIssue('warn', `Broker XML definisce ${brokerInitials.length} stati iniziali.`);
+      if (kernelInitials.length === 0) pushIssue('error', t('semanticIssueNoKernelInitial'));
+      if (kernelInitials.length > 1) pushIssue('error', t('semanticIssueManyKernelInitial', { count: kernelInitials.length }));
+      if (brokerInitials.length === 0) pushIssue('warn', t('semanticIssueNoBrokerInitial'));
+      if (brokerInitials.length > 1) pushIssue('warn', t('semanticIssueManyBrokerInitial', { count: brokerInitials.length }));
 
       kernel.transitions.forEach(transition => {
         if (!kernelStateIds.has(transition.from)) {
-          pushIssue('error', `La transizione ${transition.id || '(senza ID)'} usa CurrentState ${transition.from} non presente nel Kernel XML.`);
+          pushIssue('error', t('semanticIssueMissingCurrentState', { id: transitionLabel(transition.id), state: transition.from }));
         }
         if (!kernelStateIds.has(transition.to)) {
-          pushIssue('error', `La transizione ${transition.id || '(senza ID)'} usa NextState ${transition.to} non presente nel Kernel XML.`);
+          pushIssue('error', t('semanticIssueMissingNextState', { id: transitionLabel(transition.id), state: transition.to }));
         }
         if (!brokerEventIds.has(transition.eventId)) {
-          pushIssue('error', `La transizione ${transition.id || '(senza ID)'} usa InputEvent ${transition.eventId} non presente nel Broker XML.`);
+          pushIssue('error', t('semanticIssueMissingInputEvent', { id: transitionLabel(transition.id), eventId: transition.eventId }));
         }
         if (transition.outputId && !brokerOutputIds.has(transition.outputId)) {
-          pushIssue('error', `La transizione ${transition.id || '(senza ID)'} usa OutputFunction ${transition.outputId} non presente nel Broker XML.`);
+          pushIssue('error', t('semanticIssueMissingOutput', { id: transitionLabel(transition.id), outputId: transition.outputId }));
         }
       });
 
       broker.states.forEach(state => {
-        if (!kernelStateIds.has(state.id)) pushIssue('info', `Lo stato ${state.id} esiste nel Broker XML ma non nel Kernel XML.`);
+        if (!kernelStateIds.has(state.id)) pushIssue('info', t('semanticIssueBrokerOnlyState', { stateId: state.id }));
       });
       kernel.states.forEach(state => {
-        if (!brokerStateIds.has(state.id)) pushIssue('warn', `Lo stato ${state.id} esiste nel Kernel XML ma non nel Broker XML.`);
+        if (!brokerStateIds.has(state.id)) pushIssue('warn', t('semanticIssueKernelOnlyState', { stateId: state.id }));
       });
 
       kernel.states.forEach(state => {
         const outgoingCount = model.outgoing.get(state.id)?.length || 0;
         if (state.final && outgoingCount > 0) {
-          pushIssue('error', `Lo stato finale ${state.id} ha ${outgoingCount} transizioni uscenti.`);
+          pushIssue('error', t('semanticIssueFinalHasOutgoing', { stateId: state.id, count: outgoingCount }));
         }
       });
 
       [...model.statesMap.values()]
         .filter(state => !state.reachable)
-        .forEach(state => pushIssue('warn', `Lo stato ${state.id} non è raggiungibile dallo stato iniziale.`));
+        .forEach(state => pushIssue('warn', t('semanticIssueUnreachableState', { stateId: state.id })));
 
       if (issues.length === 0) {
-        issues.push({ severity: 'ok', message: 'Nessuna anomalia semantica rilevata.' });
+        issues.push({ severity: 'ok', message: t('semanticNoIssues') });
       }
       return issues;
     }
@@ -1593,10 +2179,10 @@ function refreshXmlEditorDiagnostics(kind) {
       const statusClass = errors.length ? 'error' : warnings.length ? 'warn' : 'ok';
       semanticStatus.className = `semantic-status ${statusClass}`;
       semanticStatus.textContent = errors.length
-        ? `${errors.length} errori`
+        ? t('semanticErrorsCount', { count: errors.length })
         : warnings.length
-          ? `${warnings.length} warning`
-          : 'ok';
+          ? t('semanticWarningsCount', { count: warnings.length })
+          : t('semanticOkShort');
 
       const sections = [];
       const renderGroup = (title, items, cssClass) => {
@@ -1609,11 +2195,11 @@ function refreshXmlEditorDiagnostics(kind) {
         `);
       };
 
-      renderGroup('Errori', errors, 'error');
-      renderGroup('Warning', warnings, 'warn');
-      renderGroup('Info', infos, 'info');
-      renderGroup('Esito', oks, 'info');
-      semanticBody.innerHTML = sections.join('') || 'Nessuna informazione disponibile.';
+      renderGroup(t('semanticGroupErrors'), errors, 'error');
+      renderGroup(t('semanticGroupWarnings'), warnings, 'warn');
+      renderGroup(t('semanticGroupInfos'), infos, 'info');
+      renderGroup(t('semanticGroupOutcome'), oks, 'info');
+      semanticBody.innerHTML = sections.join('') || t('semanticNoInfo');
     }
 
     function groupByLayer(model) {
@@ -1735,7 +2321,7 @@ function refreshXmlEditorDiagnostics(kind) {
         ...group,
         label: group.all.map(x => {
           const ev = `${x.eventId}${x.eventNames?.length ? ' / ' + x.eventNames.join(' | ') : ''}`;
-          return showOutputs.checked ? `${ev} · ${x.outputId}` : ev;
+      return showOutputs.checked ? `${ev} · ${x.outputId}` : ev;
         }).join('\n')
       }));
     }
@@ -2332,7 +2918,7 @@ function refreshXmlEditorDiagnostics(kind) {
           }, button);
         }, 'circle', createY);
       }
-      makeButton(editX, '#fff7ed', '#f97316', '#c2410c', 'Modifica stato', () => openStateEditor(state.id), (button, x, cy) => {
+        makeButton(editX, '#fff7ed', '#f97316', '#c2410c', t('editStateAction'), () => openStateEditor(state.id), (button, x, cy) => {
         const text = createSvg('text', {
           x,
           y: cy + 3.2,
@@ -2345,7 +2931,7 @@ function refreshXmlEditorDiagnostics(kind) {
         }, button);
         text.textContent = 'M';
       }, 'square', topActionY);
-    makeButton(deleteX, '#fff1f0', '#f2b8b5', '#b42318', 'Cancella stato', () => deleteStateById(state.id), (button, x, cy) => {
+        makeButton(deleteX, '#fff1f0', '#f2b8b5', '#b42318', t('deleteStateAction'), () => deleteStateById(state.id), (button, x, cy) => {
       const text = createSvg('text', {
         x,
         y: cy + 3.2,
@@ -2403,7 +2989,7 @@ function refreshXmlEditorDiagnostics(kind) {
         }, button);
       }, 'circle', createY);
     }
-    makeButton(editX, '#fff7ed', '#f97316', '#c2410c', 'Modifica stato', () => openStateEditor(state.id), (button, x, cy) => {
+        makeButton(editX, '#fff7ed', '#f97316', '#c2410c', t('editStateAction'), () => openStateEditor(state.id), (button, x, cy) => {
       const text = createSvg('text', {
         x,
         y: cy + 3.2,
@@ -2416,7 +3002,7 @@ function refreshXmlEditorDiagnostics(kind) {
       }, button);
       text.textContent = 'M';
     }, 'square', topActionY);
-    makeButton(deleteX, '#fff1f0', '#f2b8b5', '#b42318', 'Cancella stato', () => deleteStateById(state.id), (button, x, cy) => {
+        makeButton(deleteX, '#fff1f0', '#f2b8b5', '#b42318', t('deleteStateAction'), () => deleteStateById(state.id), (button, x, cy) => {
       const text = createSvg('text', {
         x,
         y: cy + 3.2,
@@ -2647,7 +3233,7 @@ function refreshXmlEditorDiagnostics(kind) {
         const button = createSvg('g', { style: 'cursor: pointer;' }, actions);
         button.style.color = item.color;
         createSvg('circle', { cx: item.x, cy: top, r: 8.5, fill: item.fill, stroke: item.stroke, 'stroke-width': 1.1 }, button);
-        createSvg('title', {}, button).textContent = item.icon === 'edit' ? 'Modifica transizioni' : 'Cancella transizioni';
+          createSvg('title', {}, button).textContent = item.icon === 'edit' ? t('editTransitionsAction') : t('deleteTransitionsAction');
         if (item.icon === 'edit') {
           renderIconPath(button, `M ${item.x - 2.5} ${top + 2.5} L ${item.x + 2.5} ${top - 2.5}`);
           renderIconPath(button, `M ${item.x + 1} ${top - 4} L ${item.x + 3.8} ${top - 1.2}`);
@@ -2715,7 +3301,7 @@ function refreshXmlEditorDiagnostics(kind) {
 
     function showEdgeTooltip(edge, evt) {
       const details = edge.label.split('\n');
-      const header = edge.transitionCount > 1 ? `${edge.transitionCount} transizioni raggruppate` : 'Transizione';
+      const header = edge.transitionCount > 1 ? t('groupedTransitionsHeader', { count: edge.transitionCount }) : t('transitionHeaderSingle');
       const fromState = graph?.statesMap?.get(edge.from);
       const toState = graph?.statesMap?.get(edge.to);
       const fromLabel = fromState?.name || edge.from;
@@ -2750,37 +3336,37 @@ function refreshXmlEditorDiagnostics(kind) {
       edgeTooltip.style.display = 'none';
     }
 
-function updateLegendCollapsedState() {
-  legend.classList.toggle('collapsed', legendCollapsed);
-  const toggle = document.getElementById('legendToggle');
-  if (toggle) {
-    toggle.setAttribute('data-collapsed', legendCollapsed ? 'true' : 'false');
-        toggle.setAttribute('aria-label', legendCollapsed ? 'Espandi legenda' : 'Contrai legenda');
-        toggle.title = legendCollapsed ? 'Espandi legenda' : 'Contrai legenda';
-  }
-}
+    function updateLegendCollapsedState() {
+      legend.classList.toggle('collapsed', legendCollapsed);
+      const toggle = document.getElementById('legendToggle');
+      if (toggle) {
+        toggle.setAttribute('data-collapsed', legendCollapsed ? 'true' : 'false');
+        toggle.setAttribute('aria-label', legendCollapsed ? t('expandLegend') : t('collapseLegend'));
+        toggle.title = legendCollapsed ? t('expandLegend') : t('collapseLegend');
+      }
+    }
 
 function updateSettingsCollapsedState() {
   if (settingsPanel) settingsPanel.classList.toggle('collapsed', settingsCollapsed);
-  if (settingsToggle) {
-    settingsToggle.setAttribute('data-collapsed', settingsCollapsed ? 'true' : 'false');
-    settingsToggle.setAttribute('aria-label', settingsCollapsed ? 'Espandi impostazioni' : 'Contrai impostazioni');
-    settingsToggle.title = settingsCollapsed ? 'Espandi impostazioni' : 'Contrai impostazioni';
-  }
-}
+      if (settingsToggle) {
+        settingsToggle.setAttribute('data-collapsed', settingsCollapsed ? 'true' : 'false');
+        settingsToggle.setAttribute('aria-label', settingsCollapsed ? t('expandSettings') : t('collapseSettings'));
+        settingsToggle.title = settingsCollapsed ? t('expandSettings') : t('collapseSettings');
+      }
+    }
 
 function updateSemanticCollapsedState() {
   if (semanticPanel) semanticPanel.classList.toggle('collapsed', semanticCollapsed);
-  if (semanticToggle) {
+      if (semanticToggle) {
         semanticToggle.setAttribute('data-collapsed', semanticCollapsed ? 'true' : 'false');
-        semanticToggle.setAttribute('aria-label', semanticCollapsed ? 'Espandi validazione semantica' : 'Contrai validazione semantica');
-        semanticToggle.title = semanticCollapsed ? 'Espandi validazione semantica' : 'Contrai validazione semantica';
+        semanticToggle.setAttribute('aria-label', semanticCollapsed ? t('expandSemantic') : t('collapseSemantic'));
+        semanticToggle.title = semanticCollapsed ? t('expandSemantic') : t('collapseSemantic');
       }
     }
 
     function closeNodeSummary() {
       summaryPanel.classList.remove('open');
-      summaryTitle.textContent = 'Riepilogo nodo';
+      summaryTitle.textContent = t('summaryTitle');
       summarySub.textContent = '';
       summaryBody.innerHTML = '';
     }
@@ -2838,7 +3424,7 @@ function updateSemanticCollapsedState() {
     }
 
     function buildSummaryMiniGraph(node, directEdges) {
-      if (!directEdges.length) return `<div class="summary-empty">Nessuna transizione diretta in uscita.</div>`;
+      if (!directEdges.length) return `<div class="summary-empty">${t('summaryNoDirectTransitions')}</div>`;
       const grouped = groupEdgesByTarget(directEdges);
       const loopGroups = grouped.filter(group => group.targetId === node.id);
       const outwardGroups = grouped.filter(group => group.targetId !== node.id);
@@ -2969,7 +3555,7 @@ function updateSemanticCollapsedState() {
     }
 
     function buildSummaryCards(directEdges) {
-      if (!directEdges.length) return `<div class="summary-empty">Nessuna transizione diretta in uscita.</div>`;
+      if (!directEdges.length) return `<div class="summary-empty">${t('summaryNoDirectTransitions')}</div>`;
       const grouped = groupEdgesByTarget(directEdges);
 
       return `<div class="summary-cards">${grouped.map(({ targetId, items }) => {
@@ -2997,7 +3583,7 @@ function updateSemanticCollapsedState() {
       const uniqueReachableCount = countReachableTargets(nodeId);
 
       summaryTitle.textContent = `${node.name} (${node.id})`;
-      summarySub.textContent = `${directEdges.length} transizioni dirette - ${uniqueReachableCount} nodi direttamente e indirettamente raggiungibili`;
+      summarySub.textContent = t('summaryReachability', { direct: directEdges.length, reachable: uniqueReachableCount });
 
       summaryBody.innerHTML = `
         <div class="summary-section">
@@ -3078,18 +3664,18 @@ function updateSemanticCollapsedState() {
 
       legend.innerHTML = `
         <div class="legend-header">
-          <h3>Legenda</h3>
+          <h3>${t('legendTitle')}</h3>
           <button type="button" class="collapse-toggle" id="legendToggle" data-collapsed="${legendCollapsed ? 'true' : 'false'}" aria-label="${legendCollapsed ? 'Espandi legenda' : 'Contrai legenda'}" title="${legendCollapsed ? 'Espandi legenda' : 'Contrai legenda'}"></button>
         </div>
         <div class="legend-body">
-          <div><b>Stati finali:</b> ${finals || 'nessuno'}</div>
-          <div style="margin-top:8px"><b>Output:</b></div>
+          <div><b>${t('finalStatesLegend')}</b> ${finals || t('noneLabel')}</div>
+          <div style="margin-top:8px"><b>${t('outputsLegend')}</b></div>
           <ul style="margin:6px 0 8px 18px; padding:0;">
             ${[...model.outputMap.entries()].map(([id, name]) => `<li><code>${escapeHtml(id)}</code> = ${escapeHtml(name)}</li>`).join('')}
           </ul>
-          ${duplicateEvents ? `<div><b>Input event con stesso ID:</b></div><ul style="margin:6px 0 8px 18px; padding:0;">${duplicateEvents}</ul>` : ''}
-          <div class="note">Stati: ${model.statesMap.size} - transizioni: ${model.kernel.transitions.length} - archi mostrati: ${displayEdges.length}</div>
-          <div class="note" style="margin-top:6px">Le etichette degli archi sono compattate automaticamente; passa il mouse sopra un box per vedere tutto il dettaglio.</div>
+          ${duplicateEvents ? `<div><b>${t('duplicateInputEventsLegend')}</b></div><ul style="margin:6px 0 8px 18px; padding:0;">${duplicateEvents}</ul>` : ''}
+          <div class="note">${t('statsNote', { states: model.statesMap.size, transitions: model.kernel.transitions.length, edges: displayEdges.length })}</div>
+          <div class="note" style="margin-top:6px">${t('legendEdgeHint')}</div>
         </div>
       `;
       document.getElementById('legendToggle')?.addEventListener('click', () => {
@@ -3122,7 +3708,7 @@ function updateSemanticCollapsedState() {
       closeNodeSummary();
       closeEditPanel();
       errorBox.style.display = 'none';
-      updateSemanticValidationPlaceholder('Carica Broker XML e Kernel XML per vedere i controlli strutturali della macchina.', 'in attesa');
+      updateSemanticValidationPlaceholder(t('semanticPlaceholder'), t('semanticPendingStatus'));
       syncMachineHeader(null);
       updateEditModeUI();
     }
@@ -3170,11 +3756,11 @@ function updateSemanticCollapsedState() {
       const text = await file.text();
       if (kind === 'broker') {
         brokerFileHandle = handle;
-        setXmlSourceLabel('broker', `Origine file: ${file.name}`);
+        setXmlSourceLabel('broker', t('sourceFile', { name: file.name }));
         setXmlText('broker', text, 'source');
       } else {
         kernelFileHandle = handle;
-        setXmlSourceLabel('kernel', `Origine file: ${file.name}`);
+        setXmlSourceLabel('kernel', t('sourceFile', { name: file.name }));
         setXmlText('kernel', text, 'source');
       }
     }
@@ -3182,7 +3768,7 @@ function updateSemanticCollapsedState() {
     function closeEditPanel() {
       editPanel.classList.remove('open');
       editDialog.classList.remove('transition-editor-dialog');
-      editTitle.textContent = 'Modalita modifica';
+      editTitle.textContent = t('editDialogTitle');
       editSub.textContent = '';
       editBody.innerHTML = '';
       editDialogOffset = { x: 0, y: 0 };
@@ -3198,7 +3784,7 @@ function updateSemanticCollapsedState() {
     }
 
     function askDeleteConfirmation(text) {
-      confirmTitle.textContent = 'Conferma cancellazione';
+      confirmTitle.textContent = t('confirmDeleteTitle');
       confirmText.textContent = text;
       confirmPanel.classList.add('open');
       return new Promise(resolve => {
@@ -3245,18 +3831,18 @@ function updateSemanticCollapsedState() {
       return `
         <div class="edit-structure">
           <div class="edit-field">
-            <label for="${prefix}Id">ID transizione</label>
+            <label for="${prefix}Id">${t('transitionIdLabel')}</label>
             <input id="${prefix}Id" name="${prefix}Id" value="${escapeHtml(transitionId)}" />
           </div>
           <div class="edit-row-2">
             <div class="edit-field">
-              <label for="${prefix}From">Stato sorgente</label>
+              <label for="${prefix}From">${t('fromStateLabel')}</label>
               ${lockNodes
                 ? `<input id="${prefix}From" name="${prefix}From" value="${escapeHtml(fromDisplay)}" readonly data-fixed-value="${escapeHtml(from)}" />`
                 : `<select id="${prefix}From" name="${prefix}From">${stateOptions.replace(`value="${escapeHtml(from)}"`, `value="${escapeHtml(from)}" selected`)}</select>`}
             </div>
             <div class="edit-field">
-              <label for="${prefix}To">Stato destinazione</label>
+              <label for="${prefix}To">${t('toStateLabel')}</label>
               ${lockNodes
                 ? `<input id="${prefix}To" name="${prefix}To" value="${escapeHtml(toDisplay)}" readonly data-fixed-value="${escapeHtml(to)}" />`
                 : `<select id="${prefix}To" name="${prefix}To">${stateOptions.replace(`value="${escapeHtml(to)}"`, `value="${escapeHtml(to)}" selected`)}</select>`}
@@ -3264,38 +3850,38 @@ function updateSemanticCollapsedState() {
           </div>
 
           <hr class="edit-section-divider" />
-          <div class="edit-section-title">Input Event</div>
+          <div class="edit-section-title">${t('inputEventSection')}</div>
           <div class="edit-field">
-            <label for="${prefix}EventId">Input event ID</label>
+            <label for="${prefix}EventId">${t('inputEventIdLabel')}</label>
             <select id="${prefix}EventId" name="${prefix}EventId" data-mode="event">
               ${eventOptions.replace(`value="${escapeHtml(selectedEventMode)}"`, `value="${escapeHtml(selectedEventMode)}" selected`)}
-              <option value="__new__" ${selectedEventMode === '__new__' ? 'selected' : ''}>Nuovo input event...</option>
+              <option value="__new__" ${selectedEventMode === '__new__' ? 'selected' : ''}>${t('newInputEventOption')}</option>
             </select>
           </div>
           <div class="edit-field" data-event-extra>
-            <label for="${prefix}EventIdCustom">Nuovo input event ID</label>
+            <label for="${prefix}EventIdCustom">${t('newInputEventIdLabel')}</label>
             <input id="${prefix}EventIdCustom" name="${prefix}EventIdCustom" value="${knownEvent ? '' : escapeHtml(eventId)}" placeholder="ID" ${knownEvent ? 'disabled' : ''} />
           </div>
           <div class="edit-field" data-event-extra>
-            <label for="${prefix}EventName">Input event nome</label>
+            <label for="${prefix}EventName">${t('inputEventNameLabel')}</label>
             <input id="${prefix}EventName" name="${prefix}EventName" value="${escapeHtml(eventName)}" placeholder="Nome esteso evento" ${knownEvent ? 'readonly' : ''} />
           </div>
 
           <hr class="edit-section-divider" />
-          <div class="edit-section-title">Output</div>
+          <div class="edit-section-title">${t('outputSection')}</div>
           <div class="edit-field">
-            <label for="${prefix}OutputId">Output ID</label>
+            <label for="${prefix}OutputId">${t('outputIdLabel')}</label>
             <select id="${prefix}OutputId" name="${prefix}OutputId" data-mode="output">
               ${outputOptions.replace(`value="${escapeHtml(selectedOutputMode)}"`, `value="${escapeHtml(selectedOutputMode)}" selected`)}
-              <option value="__new__" ${selectedOutputMode === '__new__' ? 'selected' : ''}>Nuovo output...</option>
+              <option value="__new__" ${selectedOutputMode === '__new__' ? 'selected' : ''}>${t('newOutputOption')}</option>
             </select>
           </div>
           <div class="edit-field" data-output-extra>
-            <label for="${prefix}OutputIdCustom">Nuovo output ID</label>
+            <label for="${prefix}OutputIdCustom">${t('newOutputIdLabel')}</label>
             <input id="${prefix}OutputIdCustom" name="${prefix}OutputIdCustom" value="${knownOutput ? '' : escapeHtml(outputId)}" placeholder="ID" ${knownOutput ? 'disabled' : ''} />
           </div>
           <div class="edit-field" data-output-extra>
-            <label for="${prefix}OutputName">Output nome</label>
+            <label for="${prefix}OutputName">${t('outputNameLabel')}</label>
             <input id="${prefix}OutputName" name="${prefix}OutputName" value="${escapeHtml(outputName)}" placeholder="Nome esteso output" ${knownOutput ? 'readonly' : ''} />
           </div>
         </div>
@@ -3438,28 +4024,28 @@ function updateSemanticCollapsedState() {
       const source = findStateDefinition(stateId) || {};
       const outgoingCount = stateId ? ((lastParsedKernel?.transitions || []).filter(transition => transition.from === stateId).length) : 0;
       openEditPanel(
-        stateId ? 'Modifica stato' : 'Aggiungi stato',
-        stateId ? 'Aggiorna ID, nome e flag del nodo selezionato.' : 'Crea un nuovo stato e aggiungilo a broker e kernel.',
+        stateId ? t('stateEditTitle') : t('stateAddTitle'),
+        stateId ? t('stateEditSubtitle') : t('stateAddSubtitle'),
         `
           <form id="stateEditForm">
             <div class="edit-grid">
               <div class="edit-field">
-                <label for="stateIdInput">ID stato</label>
+                <label for="stateIdInput">${t('stateIdLabel')}</label>
                 <input id="stateIdInput" name="stateId" value="${escapeHtml(source.id || getNextStateId(lastParsedBroker || { states: [] }, lastParsedKernel || { states: [] }))}" />
               </div>
               <div class="edit-field">
-                <label for="stateNameInput">Nome stato</label>
+                <label for="stateNameInput">${t('stateNameLabel')}</label>
                 <input id="stateNameInput" name="stateName" value="${escapeHtml(source.name || '')}" />
               </div>
-              <label class="edit-field checkbox"><input type="checkbox" name="stateInitial" ${source.initial ? 'checked' : ''} /> iniziale</label>
-              <label class="edit-field checkbox"><input type="checkbox" name="stateFinal" ${source.final ? 'checked' : ''} /> finale</label>
+              <label class="edit-field checkbox"><input type="checkbox" name="stateInitial" ${source.initial ? 'checked' : ''} /> ${t('stateInitialLabel')}</label>
+              <label class="edit-field checkbox"><input type="checkbox" name="stateFinal" ${source.final ? 'checked' : ''} /> ${t('stateFinalLabel')}</label>
             </div>
             <div class="edit-inline-warning" id="stateFinalWarning">
-              Settare come stato finale cancellerà tutte le transazioni da questo nodo.
+              ${t('stateFinalWarning')}
             </div>
             <div class="edit-inline-error" id="stateEditError"></div>
             <div class="edit-actions">
-              <button type="submit">${stateId ? 'Salva modifiche' : 'Aggiungi stato'}</button>
+              <button type="submit">${stateId ? t('saveChanges') : t('addState')}</button>
             </div>
           </form>
         `
@@ -3476,13 +4062,13 @@ function updateSemanticCollapsedState() {
           const missing = [];
           if (!id) missing.push('stateId');
           if (!name) missing.push('stateName');
-          setEditFieldError(stateForm, missing, 'ID e nome stato sono obbligatori');
+          setEditFieldError(stateForm, missing, t('stateIdNameRequired'));
           if (stateSubmitBtn) stateSubmitBtn.disabled = true;
           return false;
         }
         const duplicate = [...(lastParsedBroker?.states || []), ...(lastParsedKernel?.states || [])]
           .some(state => state.id === id && state.id !== stateId);
-        setEditFieldError(stateForm, duplicate ? ['stateId'] : [], duplicate ? `Esiste già uno stato con ID ${id}` : '');
+        setEditFieldError(stateForm, duplicate ? ['stateId'] : [], duplicate ? t('duplicateStateId', { id }) : '');
         if (stateSubmitBtn) stateSubmitBtn.disabled = duplicate;
         return !duplicate;
       };
@@ -3511,7 +4097,7 @@ function updateSemanticCollapsedState() {
         try {
           await applyEditableMutation(async (broker, kernel) => {
             const duplicate = [...broker.states, ...kernel.states].some(state => state.id === nextState.id && state.id !== oldId);
-            if (duplicate) throw new Error(`Esiste gia uno stato con ID ${nextState.id}`);
+            if (duplicate) throw new Error(t('duplicateStateId', { id: nextState.id }));
 
             broker.states.forEach(state => { if (nextState.initial) state.initial = false; });
             kernel.states.forEach(state => { if (nextState.initial) state.initial = false; });
@@ -3529,21 +4115,21 @@ function updateSemanticCollapsedState() {
           });
           closeEditPanel();
         } catch (err) {
-          setEditFieldError(stateForm, [], `Modifica stato fallita: ${err.message || err}`);
+          setEditFieldError(stateForm, [], t('stateUpdateFailed', { message: err.message || err }));
         }
       });
     }
 
     async function deleteStateById(stateId) {
       if (!stateId) return;
-      const accepted = await askDeleteConfirmation(`Questa operazione cancellerà lo stato ${stateId} da tutta la macchina, incluse tutte le transizioni collegate. Vuoi continuare?`);
+      const accepted = await askDeleteConfirmation(t('deleteStateConfirm', { stateId }));
       if (!accepted) return;
       applyEditableMutation(async (broker, kernel) => {
         broker.states = broker.states.filter(state => state.id !== stateId);
         kernel.states = kernel.states.filter(state => state.id !== stateId);
         kernel.transitions = kernel.transitions.filter(transition => transition.from !== stateId && transition.to !== stateId);
       }).catch(err => {
-        showError(`Cancellazione stato fallita: ${err.message || err}`);
+        showError(t('deleteStateFailed', { message: err.message || err }));
       });
     }
 
@@ -3553,8 +4139,8 @@ function updateSemanticCollapsedState() {
 
     function formatTransitionListLabel(row, index) {
       const eventName = row.eventName && row.eventName !== row.eventId ? ` (${row.eventName})` : '';
-      const eventLabel = `${row.eventId || 'Evento n/d'}${eventName}`;
-      const outputLabel = row.outputId || 'Output n/d';
+      const eventLabel = `${row.eventId || 'n/d'}${eventName}`;
+      const outputLabel = row.outputId || 'n/d';
       return {
         title: row.id || `#${index + 1}`,
         meta: `${eventLabel} · ${outputLabel}`
@@ -3611,24 +4197,24 @@ function updateSemanticCollapsedState() {
         : mappedExistingTransitions;
 
       openEditPanel(
-        edge ? 'Modifica transizioni' : 'Aggiungi transizione',
-        edge ? `Connessione ${edge.from} -> ${edge.to}` : (lockNodes ? `Nuova transizione ${presetFrom} -> ${presetTo}` : 'Crea una nuova transizione scegliendo stato, evento e output.'),
+        edge ? t('transitionEditTitle') : t('transitionAddTitle'),
+        edge ? t('transitionConnectionSubtitle', { from: edge.from, to: edge.to }) : (lockNodes ? t('transitionNewConnectionSubtitle', { from: presetFrom, to: presetTo }) : t('transitionCreateSubtitle')),
         `
           <div class="transition-editor-layout">
             <div class="transition-editor-nav">
               <div class="transition-editor-nav-head">
                 <div>
-                  <div class="transition-editor-nav-title">Gruppo transizioni</div>
+                  <div class="transition-editor-nav-title">${t('transitionGroupTitle')}</div>
                   <div class="transition-editor-nav-sub" id="transitionCount"></div>
                 </div>
-                <button type="button" class="edit-mini-btn" id="transitionAddRowBtn">Aggiungi</button>
+                <button type="button" class="edit-mini-btn" id="transitionAddRowBtn">${t('add')}</button>
               </div>
               <div class="transition-editor-list" id="transitionList"></div>
             </div>
             <div class="transition-editor-detail" id="transitionDetail"></div>
           </div>
           <div class="edit-actions">
-            <button type="button" id="transitionSaveBtn">${edge ? 'Salva gruppo' : 'Crea transizione'}</button>
+            <button type="button" id="transitionSaveBtn">${edge ? t('saveGroup') : t('createTransition')}</button>
           </div>
         `,
         { variant: 'transition-editor' }
@@ -3650,16 +4236,16 @@ function updateSemanticCollapsedState() {
 
       const renderDetail = () => {
         if (selectedIndex < 0 || !rows[selectedIndex]) {
-          detail.innerHTML = '<div class="edit-empty">Nessuna transizione nel gruppo.</div>';
+          detail.innerHTML = `<div class="edit-empty">${t('transitionEmptyGroup')}</div>`;
           return;
         }
         const row = rows[selectedIndex];
         detail.innerHTML = `
           <div class="edit-card transition-detail-card">
             <div class="edit-card-header">
-              <h4 class="edit-card-title">Transizione ${escapeHtml(row.id || `#${selectedIndex + 1}`)}</h4>
+              <h4 class="edit-card-title">${t('transitionRowTitle', { id: escapeHtml(row.id || `#${selectedIndex + 1}`) })}</h4>
               <div class="edit-card-actions">
-                <button type="button" class="edit-mini-btn danger" id="transitionRemoveActiveBtn">Rimuovi</button>
+                <button type="button" class="edit-mini-btn danger" id="transitionRemoveActiveBtn">${t('removeTransition')}</button>
               </div>
             </div>
             <div class="edit-inline-error" id="transitionRowError"></div>
@@ -3686,12 +4272,12 @@ function updateSemanticCollapsedState() {
           });
           const duplicateEventId = rowData.eventId && eventSelect?.value === '__new__' && (lastParsedBroker?.inputEvents || []).some(event => event.id === rowData.eventId);
           const duplicateOutputId = rowData.outputId && outputSelect?.value === '__new__' && (lastParsedBroker?.outputs || []).some(output => output.id === rowData.outputId);
-          const message = missingFields.length ? 'Ogni transizione richiede ID, stato sorgente, stato destinazione, input event e output' : duplicateTransitionId || duplicateKernelId
-            ? `Esiste già una transizione con ID ${rowData.id}`
+          const message = missingFields.length ? t('transitionRequiredFields') : duplicateTransitionId || duplicateKernelId
+            ? t('duplicateTransitionId', { id: rowData.id })
             : duplicateEventId
-              ? `Esiste già un InputEvent con ID ${rowData.eventId}`
+              ? t('duplicateInputEventId', { id: rowData.eventId })
               : duplicateOutputId
-                ? `Esiste già un OutputFunction con ID ${rowData.outputId}`
+                ? t('duplicateOutputId', { id: rowData.outputId })
                 : '';
           const invalidFields = [...missingFields];
           if (duplicateTransitionId || duplicateKernelId) invalidFields.push('activeId');
@@ -3716,7 +4302,7 @@ function updateSemanticCollapsedState() {
       };
 
       const renderRows = () => {
-        count.textContent = rows.length === 1 ? '1 transizione nel gruppo' : `${rows.length} transizioni nel gruppo`;
+        count.textContent = rows.length === 1 ? t('transitionCountSingle') : t('transitionCountMultiple', { count: rows.length });
         list.innerHTML = rows.length ? rows.map((transition, index) => {
           const summary = formatTransitionListLabel(transition, index);
           return `
@@ -3725,10 +4311,10 @@ function updateSemanticCollapsedState() {
                 <span class="transition-list-item-title">${escapeHtml(summary.title)}</span>
                 <span class="transition-list-item-meta">${escapeHtml(summary.meta)}</span>
               </span>
-              <span class="transition-list-item-delete" data-transition-remove="${index}" title="Rimuovi transizione" aria-label="Rimuovi transizione">X</span>
+              <span class="transition-list-item-delete" data-transition-remove="${index}" title="${t('removeTransition')}" aria-label="${t('removeTransition')}">X</span>
             </button>
           `;
-        }).join('') : '<div class="edit-empty">Nessuna transizione nel gruppo.</div>';
+        }).join('') : `<div class="edit-empty">${t('transitionEmptyGroup')}</div>`;
 
         list.querySelectorAll('[data-transition-select]').forEach(button => {
           button.addEventListener('click', event => {
@@ -3778,7 +4364,7 @@ function updateSemanticCollapsedState() {
           const nextRows = rows.filter(item => item.id || item.from || item.to || item.eventId || item.outputId);
 
           if (!nextRows.length) {
-            if (!edge) throw new Error('Inserisci almeno una transizione');
+            if (!edge) throw new Error(t('transitionNeedAtLeastOne'));
           }
 
           await applyEditableMutation(async (broker, kernel) => {
@@ -3786,13 +4372,13 @@ function updateSemanticCollapsedState() {
             const seenTransitionIds = new Set();
             nextRows.forEach(row => {
               if (!row.id || !row.from || !row.to || !row.eventId || !row.outputId) {
-                throw new Error('Ogni transizione richiede ID, stato sorgente, stato destinazione, input event e output');
+                throw new Error(t('transitionRequiredFields'));
               }
               if (!stateIds.has(row.from) || !stateIds.has(row.to)) {
-                throw new Error('La transizione fa riferimento a uno stato inesistente');
+                throw new Error(t('transitionInvalidStateRef'));
               }
               if (seenTransitionIds.has(row.id)) {
-                throw new Error(`Esiste già una transizione con ID ${row.id}`);
+                throw new Error(t('duplicateTransitionId', { id: row.id }));
               }
               seenTransitionIds.add(row.id);
             });
@@ -3803,15 +4389,15 @@ function updateSemanticCollapsedState() {
 
             nextRows.forEach(row => {
               if (kernel.transitions.some(transition => transition.id === row.id)) {
-                throw new Error(`Esiste già una transizione con ID ${row.id}`);
+                throw new Error(t('duplicateTransitionId', { id: row.id }));
               }
               if ((lastParsedBroker?.inputEvents || []).some(event => event.id === row.eventId) &&
                   !broker.inputEvents.some(event => event.id === row.eventId)) {
-                throw new Error(`Esiste già un InputEvent con ID ${row.eventId}`);
+                throw new Error(t('duplicateInputEventId', { id: row.eventId }));
               }
               if ((lastParsedBroker?.outputs || []).some(output => output.id === row.outputId) &&
                   !broker.outputs.some(output => output.id === row.outputId)) {
-                throw new Error(`Esiste già un OutputFunction con ID ${row.outputId}`);
+                throw new Error(t('duplicateOutputId', { id: row.outputId }));
               }
               upsertEventAndOutput(broker, row, row);
               kernel.transitions.push({
@@ -3825,19 +4411,19 @@ function updateSemanticCollapsedState() {
           });
           closeEditPanel();
         } catch (err) {
-          setEditFieldError(detail, [], `Modifica transizioni fallita: ${err.message || err}`);
+          setEditFieldError(detail, [], t('transitionUpdateFailed', { message: err.message || err }));
         }
       });
     }
 
     async function deleteTransitionGroup(edge) {
       if (!edge) return;
-      const accepted = await askDeleteConfirmation(`Questa operazione cancellerà la transizione ${edge.from} -> ${edge.to} da tutta la macchina, comprese tutte le varianti raggruppate su quel collegamento. Vuoi continuare?`);
+      const accepted = await askDeleteConfirmation(t('deleteTransitionConfirm', { from: edge.from, to: edge.to }));
       if (!accepted) return;
       applyEditableMutation(async (broker, kernel) => {
         kernel.transitions = kernel.transitions.filter(transition => !(transition.from === edge.from && transition.to === edge.to));
       }).catch(err => {
-        showError(`Cancellazione transizioni fallita: ${err.message || err}`);
+        showError(t('deleteTransitionFailed', { message: err.message || err }));
       });
     }
 
@@ -4240,14 +4826,14 @@ function updateSemanticCollapsedState() {
         saveLayoutToSession();
         updateEditModeUI();
       } catch (err) {
-        updateSemanticValidationPlaceholder('Validazione semantica disponibile quando Broker XML e Kernel XML sono validi.', 'xml non valido', 'error');
+      updateSemanticValidationPlaceholder(t('semanticAvailableWhenValid'), t('semanticInvalidStatusLabel'), 'error');
         showError(err.message);
       }
     }
 
     function bootstrapDefaultMachine() {
-      setXmlSourceLabel('broker', 'Origine: demo incorporato');
-      setXmlSourceLabel('kernel', 'Origine: demo incorporato');
+        setXmlSourceLabel('broker', t('sourceDemo'));
+        setXmlSourceLabel('kernel', t('sourceDemo'));
       setXmlText('broker', demoBroker);
       setXmlText('kernel', demoKernel);
       renderAll();
@@ -4265,7 +4851,7 @@ function updateSemanticCollapsedState() {
     });
     exportBtn.addEventListener('click', () => {
       exportGraphAsPng().catch(err => {
-        showError(`Export PNG fallito: ${err.message || err}`);
+        showError(localizedError('exportPngFailed', err));
       });
     });
     sceneRotateBtn.addEventListener('click', toggleSceneAutoRotate);
@@ -4311,6 +4897,17 @@ function updateSemanticCollapsedState() {
     });
     undoBtn.addEventListener('click', performUndo);
     redoBtn.addEventListener('click', performRedo);
+    languageTrigger?.addEventListener('click', event => {
+      event.stopPropagation();
+      setLanguageMenuOpen(!languageMenu?.classList.contains('open'));
+    });
+    [languageOptionIt, languageOptionEn].forEach(option => {
+      option?.addEventListener('click', event => {
+        event.stopPropagation();
+        setLanguage(option.getAttribute('data-language'));
+        setLanguageMenuOpen(false);
+      });
+    });
     settingsToggle?.addEventListener('click', () => {
       settingsCollapsed = !settingsCollapsed;
       updateSettingsCollapsedState();
@@ -4328,7 +4925,7 @@ function updateSemanticCollapsedState() {
         }
       } catch (err) {
         if (err?.name !== 'AbortError') {
-          showError(`Lettura Broker XML fallita: ${err.message || err}`);
+          showError(localizedError('readBrokerFailed', err));
         }
         return;
       }
@@ -4343,7 +4940,7 @@ function updateSemanticCollapsedState() {
         }
       } catch (err) {
         if (err?.name !== 'AbortError') {
-          showError(`Lettura Kernel XML fallita: ${err.message || err}`);
+          showError(localizedError('readKernelFailed', err));
         }
         return;
       }
@@ -4355,14 +4952,14 @@ function updateSemanticCollapsedState() {
       try {
         await saveXmlFile('broker');
       } catch (err) {
-        showError(`Salvataggio Broker XML fallito: ${err.message || err}`);
+        showError(localizedError('saveBrokerFailed', err));
       }
     });
     kernelSaveBtn.addEventListener('click', async () => {
       try {
         await saveXmlFile('kernel');
       } catch (err) {
-        showError(`Salvataggio Kernel XML fallito: ${err.message || err}`);
+        showError(localizedError('saveKernelFailed', err));
       }
     });
     brokerWindowClose.addEventListener('click', () => closeXmlWindow('broker'));
@@ -4382,11 +4979,11 @@ function updateSemanticCollapsedState() {
       if (!file) return;
       try {
         brokerFileHandle = null;
-        setXmlSourceLabel('broker', `Origine file: ${file.webkitRelativePath || file.name}`);
+        setXmlSourceLabel('broker', t('sourceFile', { name: file.webkitRelativePath || file.name }));
         await loadXmlFileIntoInput(file, brokerInput);
         scheduleAutoRender(true);
       } catch (err) {
-        showError(`Lettura Broker XML fallita: ${err.message || err}`);
+        showError(localizedError('readBrokerFailed', err));
       } finally {
         brokerFileInput.value = '';
       }
@@ -4396,24 +4993,24 @@ function updateSemanticCollapsedState() {
       if (!file) return;
       try {
         kernelFileHandle = null;
-        setXmlSourceLabel('kernel', `Origine file: ${file.webkitRelativePath || file.name}`);
+        setXmlSourceLabel('kernel', t('sourceFile', { name: file.webkitRelativePath || file.name }));
         await loadXmlFileIntoInput(file, kernelInput);
         scheduleAutoRender(true);
       } catch (err) {
-        showError(`Lettura Kernel XML fallita: ${err.message || err}`);
+        showError(localizedError('readKernelFailed', err));
       } finally {
         kernelFileInput.value = '';
       }
     });
     brokerInput.addEventListener('input', () => {
       if (brokerEditor.value !== brokerInput.value) brokerEditor.value = brokerInput.value;
-      if (!brokerSourceLabel) setXmlSourceLabel('broker', 'Origine: testo modificato nella pagina');
+      if (!brokerSourceLabel) setXmlSourceLabel('broker', t('sourceManual'));
       setXmlText('broker', brokerInput.value);
       if (isXmlEditorContentValid('broker') && isXmlEditorContentValid('kernel')) scheduleAutoRender(false);
     });
     kernelInput.addEventListener('input', () => {
       if (kernelEditor.value !== kernelInput.value) kernelEditor.value = kernelInput.value;
-      if (!kernelSourceLabel) setXmlSourceLabel('kernel', 'Origine: testo modificato nella pagina');
+      if (!kernelSourceLabel) setXmlSourceLabel('kernel', t('sourceManual'));
       setXmlText('kernel', kernelInput.value);
       if (isXmlEditorContentValid('broker') && isXmlEditorContentValid('kernel')) scheduleAutoRender(false);
     });
@@ -4515,12 +5112,19 @@ function updateSemanticCollapsedState() {
     confirmPanel.addEventListener('click', e => {
       if (e.target === confirmPanel) closeConfirmPanel(false);
     });
+    document.addEventListener('click', e => {
+      if (languageMenu && !languageMenu.contains(e.target)) {
+        setLanguageMenuOpen(false);
+      }
+    });
     document.addEventListener('keydown', e => {
       if (e.key === 'Escape' && summaryPanel.classList.contains('open')) closeNodeSummary();
       if (e.key === 'Escape' && editPanel.classList.contains('open')) closeEditPanel();
       if (e.key === 'Escape' && confirmPanel.classList.contains('open')) closeConfirmPanel(false);
+      if (e.key === 'Escape') setLanguageMenuOpen(false);
       if (e.key === 'Escape' && pendingTransitionStartId) cancelPendingTransition();
     });
+    applyLanguage();
     updateSpacingLabel();
     updateEditModeUI();
 
@@ -4655,3 +5259,4 @@ function updateSemanticCollapsedState() {
     updateSemanticCollapsedState();
     bootstrapDefaultMachine();
     updateZoomLabel();
+
