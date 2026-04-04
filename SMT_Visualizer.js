@@ -317,6 +317,10 @@ const brokerWindowToggle = document.getElementById('brokerWindowToggle');
         transitionHeaderSingle: 'Transizione',
         summaryNoDirectTransitions: 'Nessuna transizione diretta in uscita.',
         summaryReachability: '{direct} transizioni dirette - {reachable} nodi direttamente e indirettamente raggiungibili',
+        summaryMiniGraphTitle: 'Mini grafo primo livello',
+        summaryTransitionDetailsTitle: 'Dettaglio transazioni da {name}',
+        eventLabel: 'Evento:',
+        outputLabel: 'Output:',
         statsNote: 'Stati: {states} - transizioni: {transitions} - archi mostrati: {edges}',
         semanticAvailableWhenValid: 'Validazione semantica disponibile quando Broker XML e Kernel XML sono validi.',
         legendTitle: 'Legenda',
@@ -517,6 +521,10 @@ const brokerWindowToggle = document.getElementById('brokerWindowToggle');
         transitionHeaderSingle: 'Transition',
         summaryNoDirectTransitions: 'No direct outgoing transitions.',
         summaryReachability: '{direct} direct transitions - {reachable} directly and indirectly reachable nodes',
+        summaryMiniGraphTitle: 'First-level mini graph',
+        summaryTransitionDetailsTitle: 'Transition details from {name}',
+        eventLabel: 'Event:',
+        outputLabel: 'Output:',
         statsNote: 'States: {states} - transitions: {transitions} - displayed edges: {edges}',
         semanticAvailableWhenValid: 'Semantic validation is available when Broker XML and Kernel XML are valid.',
         legendTitle: 'Legend',
@@ -2326,16 +2334,25 @@ function refreshXmlEditorDiagnostics(kind) {
       }));
     }
 
-    function edgeLine(edge) {
-      const names = showEventNames.checked && edge.eventNames?.length ? ` / ${edge.eventNames.join(' | ')}` : '';
+    function edgeLine(edge, { compact = false } = {}) {
+      const eventNames = compact ? formatCompactEventNames(edge.eventNames) : (edge.eventNames || []).join(' | ');
+      const names = showEventNames.checked && edge.eventNames?.length ? ` / ${eventNames}` : '';
       const output = showOutputs.checked ? ` - ${edge.outputId}` : '';
       return `${edge.eventId}${names}${output}`;
     }
 
+    function formatCompactEventNames(eventNames = []) {
+      return eventNames.map(name => {
+        const raw = String(name || '').trim();
+        return raw.length > 20 ? `${raw.slice(0, 20)}...` : raw;
+      }).join(' | ');
+    }
+
     function buildDisplayEdge(base, all) {
-      const uniqueLines = [...new Set(all.map(edgeLine))];
-      const compactLines = uniqueLines.slice(0, LABEL_MAX_LINES);
-      if (uniqueLines.length > LABEL_MAX_LINES) compactLines.push(`+${uniqueLines.length - LABEL_MAX_LINES} altri`);
+      const uniqueLines = [...new Set(all.map(edge => edgeLine(edge, { compact: false })))];
+      const uniqueCompactLines = [...new Set(all.map(edge => edgeLine(edge, { compact: true })))];
+      const compactLines = uniqueCompactLines.slice(0, LABEL_MAX_LINES);
+      if (uniqueCompactLines.length > LABEL_MAX_LINES) compactLines.push(`+${uniqueCompactLines.length - LABEL_MAX_LINES} altri`);
       return {
         ...base,
         all,
@@ -3564,7 +3581,7 @@ function updateSemanticCollapsedState() {
         const toneClass = tone === 'red' ? 'final' : tone === 'green' ? 'loop' : 'branch';
         const pairs = items.map(edge => {
           const output = buildSummaryOutputLabel(edge);
-          return `<p><b>Evento:</b> ${buildSummaryEventLabel(edge)}${output ? `<br><b>Output:</b> ${output}` : ''}</p>`;
+          return `<p><b>${t('eventLabel')}</b> ${buildSummaryEventLabel(edge)}${output ? `<br><b>${t('outputLabel')}</b> ${output}` : ''}</p>`;
         }).join('');
         return `
           <div class="summary-card ${toneClass}">
@@ -3587,11 +3604,11 @@ function updateSemanticCollapsedState() {
 
       summaryBody.innerHTML = `
         <div class="summary-section">
-          <h4>Mini grafo primo livello</h4>
+          <h4>${t('summaryMiniGraphTitle')}</h4>
           ${buildSummaryMiniGraph(node, directEdges)}
         </div>
         <div class="summary-section">
-          <h4>Dettaglio transazioni da ${escapeHtml(node.name)}</h4>
+          <h4>${t('summaryTransitionDetailsTitle', { name: escapeHtml(node.name) })}</h4>
           ${buildSummaryCards(directEdges)}
         </div>
       `;
