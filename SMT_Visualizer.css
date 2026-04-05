@@ -475,6 +475,7 @@
 
     .viewport.mode-3d {
       cursor: grab;
+      background: transparent;
     }
 
     .viewport.mode-3d.rotating {
