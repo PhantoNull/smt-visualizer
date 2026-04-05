@@ -582,6 +582,8 @@ let semanticCollapsed = false;
     let sceneDrag = null;
     let scenePan = { x: 0, y: 0 };
     let sceneCameraDistance = CAMERA_DISTANCE_3D;
+    let sceneCameraLimits = { min: 420, max: 2400 };
+    let scenePanLimits = { x: 0, y: 0 };
     let sceneFramePending = false;
     let sceneAutoRotate = false;
     let sceneAutoRotateFrame = null;
@@ -804,8 +806,15 @@ let semanticCollapsed = false;
     }
 
     function setSceneCameraDistance(nextDistance) {
-      sceneCameraDistance = Math.max(420, Math.min(2400, nextDistance));
+      sceneCameraDistance = Math.max(sceneCameraLimits.min, Math.min(sceneCameraLimits.max, nextDistance));
       rerenderGraph();
+    }
+
+    function clampScenePan(nextPan) {
+      return {
+        x: Math.max(-scenePanLimits.x, Math.min(scenePanLimits.x, nextPan.x)),
+        y: Math.max(-scenePanLimits.y, Math.min(scenePanLimits.y, nextPan.y))
+      };
     }
 
     function toggleRenderMode() {
@@ -2457,11 +2466,7 @@ function refreshXmlEditorDiagnostics(kind) {
       updateLegend(model, displayEdges);
     }
 
-    function projectPoint3D(point, center) {
-      const relX = point.x - center.x;
-      const relY = point.y - center.y;
-      const relZ = point.z - center.z;
-
+    function rotatePoint3D(relX, relY, relZ) {
       const cosY = Math.cos(sceneRotation.y);
       const sinY = Math.sin(sceneRotation.y);
       const cosX = Math.cos(sceneRotation.x);
@@ -2471,6 +2476,17 @@ function refreshXmlEditorDiagnostics(kind) {
       const z1 = relX * sinY + relZ * cosY;
       const y2 = relY * cosX - z1 * sinX;
       const z2 = relY * sinX + z1 * cosX;
+      return { x: x1, y: y2, z: z2 };
+    }
+
+    function projectPoint3D(point, center) {
+      const relX = point.x - center.x;
+      const relY = point.y - center.y;
+      const relZ = point.z - center.z;
+      const rotated = rotatePoint3D(relX, relY, relZ);
+      const x1 = rotated.x;
+      const y2 = rotated.y;
+      const z2 = rotated.z;
       const scale = sceneCameraDistance / Math.max(220, sceneCameraDistance - z2);
 
       return {
@@ -2591,7 +2607,51 @@ function refreshXmlEditorDiagnostics(kind) {
         });
       });
 
-      return { projectedStates, width, height };
+      const worldBounds = points.length
+        ? {
+            minX: Math.min(...points.map(point => point.x)),
+            maxX: Math.max(...points.map(point => point.x)),
+            minY: Math.min(...points.map(point => point.y)),
+            maxY: Math.max(...points.map(point => point.y)),
+            minZ: Math.min(...points.map(point => point.z)),
+            maxZ: Math.max(...points.map(point => point.z))
+          }
+        : {
+            minX: 0,
+            maxX: 0,
+            minY: 0,
+            maxY: 0,
+            minZ: 0,
+            maxZ: 0
+          };
+
+      const spanX = worldBounds.maxX - worldBounds.minX;
+      const spanY = worldBounds.maxY - worldBounds.minY;
+      const spanZ = worldBounds.maxZ - worldBounds.minZ;
+      const cubePadding = spread3D * 2.35;
+      const cubeSize = Math.max(spanX, spanY, spanZ, spread3D * 4.6) + cubePadding * 2;
+      const cubeHalf = cubeSize / 2;
+      const cubeBounds = {
+        minX: center.x - cubeHalf,
+        maxX: center.x + cubeHalf,
+        minY: center.y - cubeHalf,
+        maxY: center.y + cubeHalf,
+        minZ: center.z - cubeHalf,
+        maxZ: center.z + cubeHalf
+      };
+
+      scenePanLimits = {
+        x: Math.max(0, cubePadding * 0.3),
+        y: Math.max(0, cubePadding * 0.3)
+      };
+      scenePan = clampScenePan(scenePan);
+      sceneCameraLimits = {
+        min: Math.max(CAMERA_DISTANCE_3D, cubeHalf + spread3D * 2.7),
+        max: Math.max(CAMERA_DISTANCE_3D + spread3D * 0.35, cubeHalf + spread3D * 3.15)
+      };
+      sceneCameraDistance = Math.max(sceneCameraLimits.min, Math.min(sceneCameraLimits.max, sceneCameraDistance));
+
+      return { projectedStates, width, height, center, worldBounds, cubeBounds, cubeSize, spread3D };
     }
 
     function quadPath(corners) {
@@ -2649,6 +2709,12 @@ function refreshXmlEditorDiagnostics(kind) {
       const selfLoopIndex = new Map();
       const sceneItems = [];
 
+      sceneItems.push({
+        kind: 'background',
+        depth: scene.cubeBounds.minZ,
+        draw: () => draw3DCube(sceneLayer, scene)
+      });
+
       displayEdges.forEach(edge => {
         const from = model.statesMap.get(edge.from);
         const to = model.statesMap.get(edge.to);
@@ -2687,6 +2753,116 @@ function refreshXmlEditorDiagnostics(kind) {
         .forEach(item => item.draw());
 
       updateLegend(model, displayEdges);
+    }
+
+    function draw3DCube(layer, scene) {
+      const { center, cubeBounds, spread3D } = scene;
+      const corners3d = {
+        nlb: { x: cubeBounds.minX, y: cubeBounds.minY, z: cubeBounds.minZ },
+        nrb: { x: cubeBounds.maxX, y: cubeBounds.minY, z: cubeBounds.minZ },
+        frb: { x: cubeBounds.maxX, y: cubeBounds.maxY, z: cubeBounds.minZ },
+        flb: { x: cubeBounds.minX, y: cubeBounds.maxY, z: cubeBounds.minZ },
+        nlf: { x: cubeBounds.minX, y: cubeBounds.minY, z: cubeBounds.maxZ },
+        nrf: { x: cubeBounds.maxX, y: cubeBounds.minY, z: cubeBounds.maxZ },
+        frf: { x: cubeBounds.maxX, y: cubeBounds.maxY, z: cubeBounds.maxZ },
+        flf: { x: cubeBounds.minX, y: cubeBounds.maxY, z: cubeBounds.maxZ }
+      };
+      const projected = Object.fromEntries(
+        Object.entries(corners3d).map(([key, point]) => [key, projectPoint3D(point, center)])
+      );
+
+      const faceDefs = [
+        { keys: ['nlb', 'nrb', 'frb', 'flb'], normal: { x: 0, y: 0, z: -1 }, grid: [{ min: cubeBounds.minX, max: cubeBounds.maxX }, { min: cubeBounds.minY, max: cubeBounds.maxY }, (x, y) => ({ x, y, z: cubeBounds.minZ }), (x, y) => ({ x, y, z: cubeBounds.minZ }), (x, y) => ({ x, y, z: cubeBounds.minZ })] },
+        { keys: ['nlf', 'nrf', 'frf', 'flf'], normal: { x: 0, y: 0, z: 1 }, grid: [{ min: cubeBounds.minX, max: cubeBounds.maxX }, { min: cubeBounds.minY, max: cubeBounds.maxY }, (x, y) => ({ x, y, z: cubeBounds.maxZ }), (x, y) => ({ x, y, z: cubeBounds.maxZ }), (x, y) => ({ x, y, z: cubeBounds.maxZ })] },
+        { keys: ['nlb', 'nrb', 'nrf', 'nlf'], normal: { x: 0, y: -1, z: 0 }, grid: [{ min: cubeBounds.minX, max: cubeBounds.maxX }, { min: cubeBounds.minZ, max: cubeBounds.maxZ }, (x, z) => ({ x, y: cubeBounds.minY, z }), (x, z) => ({ x, y: cubeBounds.minY, z }), (x, z) => ({ x, y: cubeBounds.minY, z })] },
+        { keys: ['flb', 'frb', 'frf', 'flf'], normal: { x: 0, y: 1, z: 0 }, grid: [{ min: cubeBounds.minX, max: cubeBounds.maxX }, { min: cubeBounds.minZ, max: cubeBounds.maxZ }, (x, z) => ({ x, y: cubeBounds.maxY, z }), (x, z) => ({ x, y: cubeBounds.maxY, z }), (x, z) => ({ x, y: cubeBounds.maxY, z })] },
+        { keys: ['nlb', 'flb', 'flf', 'nlf'], normal: { x: -1, y: 0, z: 0 }, grid: [{ min: cubeBounds.minZ, max: cubeBounds.maxZ }, { min: cubeBounds.minY, max: cubeBounds.maxY }, (z, y) => ({ x: cubeBounds.minX, y, z }), (z, y) => ({ x: cubeBounds.minX, y, z }), (z, y) => ({ x: cubeBounds.minX, y, z })] },
+        { keys: ['nrb', 'frb', 'frf', 'nrf'], normal: { x: 1, y: 0, z: 0 }, grid: [{ min: cubeBounds.minZ, max: cubeBounds.maxZ }, { min: cubeBounds.minY, max: cubeBounds.maxY }, (z, y) => ({ x: cubeBounds.maxX, y, z }), (z, y) => ({ x: cubeBounds.maxX, y, z }), (z, y) => ({ x: cubeBounds.maxX, y, z })] }
+      ];
+
+      const visibleInteriorFaces = faceDefs
+        .map(face => {
+          const rotatedNormal = rotatePoint3D(face.normal.x, face.normal.y, face.normal.z);
+          const faceCenterWorld = face.keys.reduce((acc, key) => ({
+            x: acc.x + corners3d[key].x,
+            y: acc.y + corners3d[key].y,
+            z: acc.z + corners3d[key].z
+          }), { x: 0, y: 0, z: 0 });
+          faceCenterWorld.x /= face.keys.length;
+          faceCenterWorld.y /= face.keys.length;
+          faceCenterWorld.z /= face.keys.length;
+          const faceCenterCamera = rotatePoint3D(
+            faceCenterWorld.x - center.x,
+            faceCenterWorld.y - center.y,
+            faceCenterWorld.z - center.z
+          );
+          const viewVector = {
+            x: -faceCenterCamera.x,
+            y: -faceCenterCamera.y,
+            z: sceneCameraDistance - faceCenterCamera.z
+          };
+          const facing = rotatedNormal.x * viewVector.x + rotatedNormal.y * viewVector.y + rotatedNormal.z * viewVector.z;
+          return { ...face, visible: facing < -0.01, normalDepth: rotatedNormal.z };
+        })
+        .filter(face => face.visible);
+
+      visibleInteriorFaces.forEach(face => {
+        const pts = face.keys.map(key => projected[key]);
+        const depth = pts.reduce((sum, point) => sum + point.depth, 0) / pts.length;
+        const opacity = depth < 0 ? 0.045 : 0.065;
+        createSvg('path', {
+          d: `M ${pts[0].x} ${pts[0].y} L ${pts[1].x} ${pts[1].y} L ${pts[2].x} ${pts[2].y} L ${pts[3].x} ${pts[3].y} Z`,
+          fill: `rgba(226, 232, 240, ${opacity})`,
+          stroke: 'none'
+        }, layer);
+        createSvg('path', {
+          d: `M ${pts[0].x} ${pts[0].y} L ${pts[1].x} ${pts[1].y} L ${pts[2].x} ${pts[2].y} L ${pts[3].x} ${pts[3].y} Z`,
+          fill: 'none',
+          stroke: `rgba(148, 163, 184, ${depth < 0 ? 0.34 : 0.46})`,
+          'stroke-width': 1.45,
+          'stroke-linejoin': 'round'
+        }, layer);
+      });
+
+      const step = Math.max(90, spread3D * 0.82);
+      const drawFaceGrid = (rangeA, rangeB, pointBuilderA, pointBuilderB, pointBuilderDot) => {
+        for (let a = rangeA.min; a <= rangeA.max + 1; a += step) {
+          const from = projectPoint3D(pointBuilderA(a, rangeB.min), center);
+          const to = projectPoint3D(pointBuilderA(a, rangeB.max), center);
+          createSvg('path', {
+            d: `M ${from.x} ${from.y} L ${to.x} ${to.y}`,
+            fill: 'none',
+            stroke: 'rgba(148, 163, 184, 0.12)',
+            'stroke-width': 0.9
+          }, layer);
+        }
+        for (let b = rangeB.min; b <= rangeB.max + 1; b += step) {
+          const from = projectPoint3D(pointBuilderB(rangeA.min, b), center);
+          const to = projectPoint3D(pointBuilderB(rangeA.max, b), center);
+          createSvg('path', {
+            d: `M ${from.x} ${from.y} L ${to.x} ${to.y}`,
+            fill: 'none',
+            stroke: 'rgba(148, 163, 184, 0.12)',
+            'stroke-width': 0.9
+          }, layer);
+        }
+        for (let a = rangeA.min; a <= rangeA.max + 1; a += step) {
+          for (let b = rangeB.min; b <= rangeB.max + 1; b += step) {
+            const point = projectPoint3D(pointBuilderDot(a, b), center);
+            const dotRadius = Math.max(0.95, Math.min(1.8, point.scale * 1.1));
+            createSvg('circle', {
+              cx: point.x,
+              cy: point.y,
+              r: dotRadius,
+              fill: 'rgba(148, 163, 184, 0.32)',
+              stroke: 'none'
+            }, layer);
+          }
+        }
+      };
+      visibleInteriorFaces.forEach(face => {
+        drawFaceGrid(...face.grid);
+      });
     }
 
     function drawNode3D(state, layer, scene) {
@@ -3682,7 +3858,7 @@ function updateSemanticCollapsedState() {
       legend.innerHTML = `
         <div class="legend-header">
           <h3>${t('legendTitle')}</h3>
-          <button type="button" class="collapse-toggle" id="legendToggle" data-collapsed="${legendCollapsed ? 'true' : 'false'}" aria-label="${legendCollapsed ? 'Espandi legenda' : 'Contrai legenda'}" title="${legendCollapsed ? 'Espandi legenda' : 'Contrai legenda'}"></button>
+          <button type="button" class="collapse-toggle" id="legendToggle" data-collapsed="${legendCollapsed ? 'true' : 'false'}" aria-label="${legendCollapsed ? t('expandLegend') : t('collapseLegend')}" title="${legendCollapsed ? t('expandLegend') : t('collapseLegend')}"></button>
         </div>
         <div class="legend-body">
           <div><b>${t('finalStatesLegend')}</b> ${finals || t('noneLabel')}</div>
@@ -4669,8 +4845,10 @@ function updateSemanticCollapsedState() {
         const dx = event.clientX - sceneDrag.x;
         const dy = event.clientY - sceneDrag.y;
         if (sceneDrag.mode === 'pan') {
-          scenePan.x = sceneDrag.startPanX + dx;
-          scenePan.y = sceneDrag.startPanY + dy;
+          scenePan = clampScenePan({
+            x: sceneDrag.startPanX + dx,
+            y: sceneDrag.startPanY + dy
+          });
         } else {
           sceneRotation.y = sceneDrag.startY + dx * 0.008;
           sceneRotation.x = Math.max(-1.2, Math.min(1.2, sceneDrag.startX + dy * 0.006));
